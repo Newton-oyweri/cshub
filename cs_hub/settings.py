@@ -151,4 +151,4 @@ PWA_APP_SPLASH_SCREEN = [
     }
 ]
 # Optional custom service worker – create this file if you want advanced offline caching
-# PWA_SERVICE_WORKER_PATH = os.path.join(BASE_DIR, 'static/js', 'serviceworker.js')
+PWA_SERVICE_WORKER_PATH = os.path.join(BASE_DIR, 'static/js', 'serviceworker.js')
