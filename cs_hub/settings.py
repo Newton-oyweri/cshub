@@ -11,8 +11,9 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
-
 import os
+
+import dj_database_url  # ADD THIS
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -22,12 +23,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-73*=!%zdq%3db%3#v$#65&z0z%#*)638*lx@yjm3x(pt+rr134'
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-73*=!%zdq%3db%3#v$#65&z0z%#*)638*lx@yjm3x(pt+rr134')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'  # False on Render
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']  # Render handles domain; safer than empty list
 
 
 # Application definition
@@ -45,6 +46,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # ADD THIS (right after SecurityMiddleware)
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -77,10 +79,10 @@ WSGI_APPLICATION = 'cs_hub.wsgi.application'
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default='sqlite:///' + str(BASE_DIR / 'db.sqlite3'),
+        conn_max_age=600,
+    )
 }
 
 
@@ -112,40 +114,41 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-
-# At the bottom of settings.py
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),
-]
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # for collectstatic later
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# WhiteNoise compression & caching (recommended for Render)
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 
+# PWA Configuration (your existing settings – improved icon paths)
 PWA_APP_NAME = 'CShub'
 PWA_APP_DESCRIPTION = "Community hub for CS students and developers"
-PWA_APP_THEME_COLOR = '#0f172a'  # Matches your dark nav background
+PWA_APP_THEME_COLOR = '#0f172a'
 PWA_APP_BACKGROUND_COLOR = '#1e293b'
-PWA_APP_DISPLAY = 'standalone'  # Full-screen, no browser UI
+PWA_APP_DISPLAY = 'standalone'
 PWA_APP_SCOPE = '/'
 PWA_APP_ORIENTATION = 'any'
 PWA_APP_START_URL = '/'
 PWA_APP_STATUS_BAR_COLOR = 'default'
 PWA_APP_ICONS = [
     {
-        'src': '/static/images/icons/logo.png',
+        'src': '/static/images/icons/icon-192x192.png',
         'sizes': '192x192',
         'type': 'image/png'
     },
     {
-        'src': '/static/images/icons/logo.png',
+        'src': '/static/images/icons/icon-512x512.png',
         'sizes': '512x512',
         'type': 'image/png'
     }
 ]
 PWA_APP_SPLASH_SCREEN = [
     {
-        'src': '/static/images/icons/logo.png',  # Example for iPhone X+
+        'src': '/static/images/icons/icon-512x512.png',
         'media': '(device-width: 1125px) and (device-height: 2436px) and (-webkit-device-pixel-ratio: 3)'
     }
 ]
-PWA_SERVICE_WORKER_PATH = os.path.join(BASE_DIR, 'static/js', 'serviceworker.js')  # Optional: for custom SW later
+# Optional custom service worker – create this file if you want advanced offline caching
+# PWA_SERVICE_WORKER_PATH = os.path.join(BASE_DIR, 'static/js', 'serviceworker.js')
