@@ -5,20 +5,20 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <!-- Viewport will be controlled via JavaScript -->
     <meta name="theme-color" content="#0f172a">
     <title>CShub - Home</title>
-    <!-- Icons & Bootstrap -->
+    
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    
     <style>
-        html, body {
-            width: 100%;
-            height: 100%;
-            margin: 0;
+        html, body { width: 100%; height: 100%; margin: 0; }
+        
+        /* Force Desktop Styles: This kicks in when the toggle is flipped */
+        body.force-desktop {
+            min-width: 1200px; 
+            overflow-x: auto;
         }
-        .overflow-x-auto::-webkit-scrollbar { display: none; }
-        .overflow-x-auto { -ms-overflow-style: none; scrollbar-width: none; }
 
         .nav-link {
             white-space: nowrap;
@@ -27,6 +27,7 @@
             transition: all 0.3s ease;
         }
         .nav-link i { color: #94a3b8; transition: color 0.3s ease; }
+        
         .hover-lift:hover {
             background: linear-gradient(135deg, rgba(96, 165, 250, 0.15), rgba(167, 139, 250, 0.15));
             color: white !important;
@@ -34,12 +35,7 @@
             box-shadow: 0 8px 25px rgba(96, 165, 250, 0.25);
         }
         .hover-lift:hover i { color: #60a5fa; }
-        .hover-logout:hover {
-            background: rgba(239, 68, 68, 0.2) !important;
-            color: #fca5a5 !important;
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);
-        }
+
         .active-link {
             background: linear-gradient(135deg, rgba(96, 165, 250, 0.25), rgba(167, 139, 250, 0.25)) !important;
             color: #ffffff !important;
@@ -47,205 +43,134 @@
         }
         .active-link i { color: #60a5fa !important; }
 
-        /* View toggle button style */
         #view-toggle-btn {
             position: fixed;
-            top: 20px;
+            bottom: 20px;
             right: 20px;
             z-index: 1100;
-            background: rgba(15, 23, 42, 0.8);
+            background: rgba(15, 23, 42, 0.9);
             backdrop-filter: blur(10px);
             border: 1px solid #334155;
             color: #e2e8f0;
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 0.9rem;
-        }
-        #view-toggle-btn i {
-            margin-right: 6px;
+            padding: 10px 16px;
+            border-radius: 50px;
+            font-weight: 600;
         }
     </style>
+
+    <script>
+        /* This script executes before the page renders to prevent layout jumping */
+        (function() {
+            const userPref = localStorage.getItem('viewMode');
+            const viewport = document.createElement('meta');
+            viewport.name = "viewport";
+            
+            if (userPref === 'desktop') {
+                // We set a wide width and scale it down so it fits the mobile screen
+                viewport.content = "width=1200, initial-scale=0.35";
+                document.documentElement.classList.add('force-desktop');
+            } else {
+                viewport.content = "width=device-width, initial-scale=1, viewport-fit=cover";
+            }
+            document.head.appendChild(viewport);
+        })();
+    </script>
 </head>
-<body>
+<body class="bg-light">
+
     <div id="viewport-root">
         <nav class="navbar shadow-sm border-bottom sticky-top py-2"
-             style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-                    border-bottom: 1px solid #334155;">
+             style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-bottom: 1px solid #334155;">
             <div class="container-fluid px-3 px-lg-4">
                 <div class="d-flex align-items-center w-100">
-                    <!-- Logo -->
-                    <div class="d-flex align-items-center flex-shrink-0">
-                        <a class="navbar-brand fw-bold d-flex align-items-center text-white" href="/">
-                            <i class="bi bi-cpu me-2 fs-5" style="color:#60a5fa;"></i>
-                            <span style="
-                                background: linear-gradient(90deg, #60a5fa, #a78bfa);
-                                -webkit-background-clip: text;
-                                -webkit-text-fill-color: transparent;
-                                font-size: 1.4rem;">
-                                CShub
-                            </span>
+                    <a class="navbar-brand fw-bold d-flex align-items-center text-white" href="/">
+                        <i class="bi bi-cpu me-2 fs-5" style="color:#60a5fa;"></i>
+                        <span style="background: linear-gradient(90deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 1.4rem;">
+                            CShub
+                        </span>
+                    </a>
+
+                    <div class="d-flex align-items-center ms-auto gap-2">
+                        <a class="nav-link px-3 py-2 rounded-3 fw-medium d-flex align-items-center gap-2 hover-lift {% if request.path == '/' %}active-link{% endif %}" href="/">
+                            <i class="bi bi-house-door"></i> <span class="d-none d-sm-inline">Home</span>
                         </a>
-                        <div class="vr ms-2 opacity-25 d-none d-sm-block"
-                             style="background-color:#475569;"></div>
-                    </div>
-                    <!-- Nav links -->
-                    <div class="d-flex align-items-center ms-auto overflow-x-auto flex-nowrap"
-                         style="-webkit-overflow-scrolling: touch;">
-                        <div class="d-flex align-items-center gap-3 flex-nowrap">
-                            {% if not user.is_authenticated %}
-                                <a class="nav-link px-3 py-2 rounded-3 fw-medium d-flex align-items-center gap-2 hover-lift
-                                   {% if request.path == '/' %}active-link{% endif %}"
-                                   href="/">
-                                    <i class="bi bi-house-door"></i> Home
-                                </a>
-                                <a class="nav-link px-3 py-2 rounded-3 fw-medium d-flex align-items-center gap-2 hover-lift"
-                                   href="{% url 'accounts:signup' %}">
-                                    <i class="bi bi-person-plus"></i> Signup
-                                </a>
-                                <a class="nav-link btn btn-outline-primary border-2 px-4 py-2 rounded-3 fw-semibold
-                                           d-flex align-items-center gap-2"
-                                   href="{% url 'accounts:login' %}"
-                                   style="border-color:#60a5fa; color:#60a5fa;">
-                                    <i class="bi bi-box-arrow-in-right"></i> Login
-                                </a>
-                            {% else %}
-                                <a class="nav-link px-3 py-2 rounded-3 fw-medium d-flex align-items-center gap-2 hover-lift
-                                   {% if request.path == '/' %}active-link{% endif %}"
-                                   href="/">
-                                    <i class="bi bi-house-door"></i> Home
-                                </a>
-                                <a class="nav-link px-3 py-2 rounded-3 fw-semibold d-flex align-items-center gap-2
-                                           text-danger hover-logout"
-                                   href="{% url 'accounts:logout' %}">
-                                    <i class="bi bi-box-arrow-right"></i> Logout
-                                </a>
-                            {% endif %}
-                        </div>
+
+                        {% if not user.is_authenticated %}
+                            <a class="nav-link px-3 py-2 rounded-3 fw-medium d-flex align-items-center gap-2 hover-lift" href="{% url 'accounts:signup' %}">
+                                <i class="bi bi-person-plus"></i> Signup
+                            </a>
+                            <a class="btn btn-outline-primary border-2 px-3 py-2 rounded-3 fw-semibold d-flex align-items-center gap-2" 
+                               href="{% url 'accounts:login' %}" style="border-color:#60a5fa; color:#60a5fa;">
+                                <i class="bi bi-box-arrow-in-right"></i> Login
+                            </a>
+                        {% else %}
+                            <a class="nav-link px-3 py-2 rounded-3 fw-semibold d-flex align-items-center gap-2 text-danger hover-lift" href="{% url 'accounts:logout' %}">
+                                <i class="bi bi-box-arrow-right"></i> Logout
+                            </a>
+                        {% endif %}
                     </div>
                 </div>
             </div>
         </nav>
 
-        <!-- Main Content -->
-        <main class="flex-grow-1 d-flex flex-column justify-content-center align-items-center text-center py-5 px-4">
+        <main class="d-flex flex-column justify-content-center align-items-center text-center py-5 px-4" style="min-height: 80vh;">
             <h1 class="display-4 fw-bold text-dark mb-3">Welcome to CShub!</h1>
             <p class="lead text-muted mb-4">
                 A community hub for CS students and developers to learn, share, and grow together.
             </p>
+
             {% if user.is_authenticated %}
                 <p class="fs-4">Hello, <strong>{{ user.username }}</strong>! 👋</p>
             {% else %}
-                <p class="fs-5 text-muted">Join the community today.</p>
-                <a href="{% url 'accounts:signup' %}" class="btn btn-primary btn-lg mt-3">Get Started</a>
+                <a href="{% url 'accounts:signup' %}" class="btn btn-primary btn-lg mt-2 px-5 shadow-sm">Get Started</a>
             {% endif %}
 
-            <!-- Non-floating install buttons (now part of page flow) -->
-            <div class="mt-5 d-flex flex-column gap-3 align-items-center">
-                <button id="install-button-desktop"
-                        class="btn btn-primary btn-lg shadow d-none d-md-block"
-                        style="display: none;">
-                    <i class="bi bi-download me-2"></i> Install CShub App (Desktop)
-                </button>
-
-                <button id="install-button-mobile"
-                        class="btn btn-primary btn-lg shadow d-block d-md-none"
-                        style="display: none;">
-                    <i class="bi bi-download me-2"></i> Install App (Mobile)
+            <div class="mt-5">
+                <button id="pwa-install-btn" class="btn btn-dark btn-lg shadow-sm d-none">
+                    <i class="bi bi-download me-2"></i> Install CShub App
                 </button>
             </div>
         </main>
     </div>
 
-    <!-- View Toggle Button -->
-    <button id="view-toggle-btn" class="btn btn-sm">
-        <i class="bi bi-phone"></i> <span>Mobile View</span>
-    </button>
+    <button id="view-toggle-btn" class="btn shadow">
+        </button>
 
-    <!-- PWA Install Script + Viewport Toggle -->
     <script>
-        // Default to mobile view
-        let isDesktopView = false;
-        const viewportMeta = document.querySelector('meta[name="viewport"]') || document.createElement('meta');
-        viewportMeta.name = 'viewport';
-        if (!document.querySelector('meta[name="viewport"]')) {
-            document.head.appendChild(viewportMeta);
-        }
+        // 1. Handle Toggle Logic and Page Refresh
+        const toggleBtn = document.getElementById('view-toggle-btn');
+        const isDesktop = localStorage.getItem('viewMode') === 'desktop';
+        
+        // Initial button state
+        toggleBtn.innerHTML = isDesktop 
+            ? '<i class="bi bi-phone me-2"></i> Mobile View' 
+            : '<i class="bi bi-display me-2"></i> Desktop View';
 
-        function setMobileView() {
-            viewportMeta.content = 'width=device-width, initial-scale=1, viewport-fit=cover';
-            document.getElementById('view-toggle-btn').innerHTML = '<i class="bi bi-display"></i> Desktop View';
-            isDesktopView = false;
-        }
-
-        function setDesktopView() {
-            viewportMeta.content = 'width=1024, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
-            document.getElementById('view-toggle-btn').innerHTML = '<i class="bi bi-phone"></i> Mobile View';
-            isDesktopView = true;
-        }
-
-        // Initialize with mobile view
-        setMobileView();
-
-        // Toggle button
-        document.getElementById('view-toggle-btn').addEventListener('click', () => {
-            if (isDesktopView) {
-                setMobileView();
-            } else {
-                setDesktopView();
-            }
+        toggleBtn.addEventListener('click', () => {
+            const nextMode = localStorage.getItem('viewMode') === 'desktop' ? 'mobile' : 'desktop';
+            localStorage.setItem('viewMode', nextMode);
+            window.location.reload(); // Force reload to apply viewport meta from the head script
         });
 
-        // PWA Install Logic (unchanged)
+        // 2. PWA Logic (Detects if app can be installed)
         let deferredPrompt;
-        const desktopBtn = document.getElementById('install-button-desktop');
-        const mobileBtn = document.getElementById('install-button-mobile');
-
-        const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-                             window.navigator.standalone === true;
-
-        if (isStandalone) {
-            if (desktopBtn) desktopBtn.style.display = 'none';
-            if (mobileBtn) mobileBtn.style.display = 'none';
-        } else {
-            window.addEventListener('load', () => {
-                if (desktopBtn) desktopBtn.style.display = 'block';
-                if (mobileBtn) mobileBtn.style.display = 'block';
-            });
-        }
+        const installBtn = document.getElementById('pwa-install-btn');
 
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
+            installBtn.classList.remove('d-none');
         });
 
-        const tryInstall = async () => {
-            if (!deferredPrompt) {
-                if (navigator.userAgent.toLowerCase().includes('chrome')) {
-                    alert("Almost ready! Refresh once or tap ⋮ → 'Add to Home screen'");
-                } else {
-                    alert("To install: Tap Share → 'Add to Home Screen'");
-                }
-                return;
-            }
+        installBtn.addEventListener('click', async () => {
+            if (!deferredPrompt) return;
             deferredPrompt.prompt();
             const { outcome } = await deferredPrompt.userChoice;
-            if (outcome === 'accepted') {
-                desktopBtn.style.display = 'none';
-                mobileBtn.style.display = 'none';
-            }
+            if (outcome === 'accepted') installBtn.classList.add('d-none');
             deferredPrompt = null;
-        };
-
-        if (desktopBtn) desktopBtn.addEventListener('click', tryInstall);
-        if (mobileBtn) mobileBtn.addEventListener('click', tryInstall);
-
-        window.addEventListener('appinstalled', () => {
-            desktopBtn.style.display = 'none';
-            mobileBtn.style.display = 'none';
         });
     </script>
 
-    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
