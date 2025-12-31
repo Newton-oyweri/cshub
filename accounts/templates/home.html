@@ -14,10 +14,10 @@
     <style>
         html, body { width: 100%; height: 100%; margin: 0; }
         
-        /* Force Desktop Styles: This kicks in when the toggle is flipped */
+        /* The "Secret Sauce" for Desktop View on Mobile */
         body.force-desktop {
-            min-width: 1200px; 
-            overflow-x: auto;
+            min-width: 1200px !important; 
+            overflow-x: auto !important;
         }
 
         .nav-link {
@@ -26,47 +26,39 @@
             color: #e2e8f0 !important;
             transition: all 0.3s ease;
         }
-        .nav-link i { color: #94a3b8; transition: color 0.3s ease; }
         
         .hover-lift:hover {
             background: linear-gradient(135deg, rgba(96, 165, 250, 0.15), rgba(167, 139, 250, 0.15));
-            color: white !important;
             transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(96, 165, 250, 0.25);
         }
-        .hover-lift:hover i { color: #60a5fa; }
 
         .active-link {
             background: linear-gradient(135deg, rgba(96, 165, 250, 0.25), rgba(167, 139, 250, 0.25)) !important;
             color: #ffffff !important;
-            box-shadow: 0 4px 15px rgba(96,165,250,0.35);
         }
-        .active-link i { color: #60a5fa !important; }
 
+        /* Fixed Toggle Button */
         #view-toggle-btn {
             position: fixed;
-            bottom: 20px;
+            top: 80px; /* Below the nav */
             right: 20px;
             z-index: 1100;
-            background: rgba(15, 23, 42, 0.9);
+            background: rgba(15, 23, 42, 0.8);
             backdrop-filter: blur(10px);
             border: 1px solid #334155;
             color: #e2e8f0;
-            padding: 10px 16px;
-            border-radius: 50px;
-            font-weight: 600;
+            padding: 8px 12px;
+            border-radius: 8px;
         }
     </style>
 
     <script>
-        /* This script executes before the page renders to prevent layout jumping */
+        // Check preference and set viewport BEFORE body renders
         (function() {
-            const userPref = localStorage.getItem('viewMode');
+            const mode = localStorage.getItem('viewMode');
             const viewport = document.createElement('meta');
             viewport.name = "viewport";
-            
-            if (userPref === 'desktop') {
-                // We set a wide width and scale it down so it fits the mobile screen
+            if (mode === 'desktop') {
                 viewport.content = "width=1200, initial-scale=0.35";
                 document.documentElement.classList.add('force-desktop');
             } else {
@@ -76,99 +68,114 @@
         })();
     </script>
 </head>
-<body class="bg-light">
+<body>
 
-    <div id="viewport-root">
-        <nav class="navbar shadow-sm border-bottom sticky-top py-2"
-             style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-bottom: 1px solid #334155;">
-            <div class="container-fluid px-3 px-lg-4">
+    <div id="viewport-root" class="d-flex flex-column min-vh-100">
+        <nav class="navbar shadow-sm border-bottom sticky-top py-2" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
+            <div class="container-fluid px-3">
                 <div class="d-flex align-items-center w-100">
-                    <a class="navbar-brand fw-bold d-flex align-items-center text-white" href="/">
-                        <i class="bi bi-cpu me-2 fs-5" style="color:#60a5fa;"></i>
-                        <span style="background: linear-gradient(90deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 1.4rem;">
-                            CShub
-                        </span>
+                    <a class="navbar-brand fw-bold text-white" href="/">
+                        <i class="bi bi-cpu me-2" style="color:#60a5fa;"></i>
+                        <span style="background: linear-gradient(90deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">CShub</span>
                     </a>
 
                     <div class="d-flex align-items-center ms-auto gap-2">
-                        <a class="nav-link px-3 py-2 rounded-3 fw-medium d-flex align-items-center gap-2 hover-lift {% if request.path == '/' %}active-link{% endif %}" href="/">
-                            <i class="bi bi-house-door"></i> <span class="d-none d-sm-inline">Home</span>
+                        <a class="nav-link px-3 py-2 rounded-3 hover-lift {% if request.path == '/' %}active-link{% endif %}" href="/">
+                            <i class="bi bi-house-door"></i> Home
                         </a>
 
                         {% if not user.is_authenticated %}
-                            <a class="nav-link px-3 py-2 rounded-3 fw-medium d-flex align-items-center gap-2 hover-lift" href="{% url 'accounts:signup' %}">
-                                <i class="bi bi-person-plus"></i> Signup
-                            </a>
-                            <a class="btn btn-outline-primary border-2 px-3 py-2 rounded-3 fw-semibold d-flex align-items-center gap-2" 
-                               href="{% url 'accounts:login' %}" style="border-color:#60a5fa; color:#60a5fa;">
-                                <i class="bi bi-box-arrow-in-right"></i> Login
-                            </a>
+                            <a class="nav-link px-3 py-2 rounded-3 hover-lift" href="{% url 'accounts:signup' %}">Signup</a>
+                            <a class="btn btn-outline-primary" href="{% url 'accounts:login' %}" style="color:#60a5fa; border-color:#60a5fa;">Login</a>
                         {% else %}
-                            <a class="nav-link px-3 py-2 rounded-3 fw-semibold d-flex align-items-center gap-2 text-danger hover-lift" href="{% url 'accounts:logout' %}">
-                                <i class="bi bi-box-arrow-right"></i> Logout
-                            </a>
+                            <a class="nav-link text-danger hover-lift" href="{% url 'accounts:logout' %}">Logout</a>
                         {% endif %}
                     </div>
                 </div>
             </div>
         </nav>
 
-        <main class="d-flex flex-column justify-content-center align-items-center text-center py-5 px-4" style="min-height: 80vh;">
-            <h1 class="display-4 fw-bold text-dark mb-3">Welcome to CShub!</h1>
-            <p class="lead text-muted mb-4">
-                A community hub for CS students and developers to learn, share, and grow together.
-            </p>
+        <main class="flex-grow-1 d-flex flex-column justify-content-center align-items-center text-center py-5">
+            <h1 class="display-4 fw-bold mb-3">Welcome to CShub!</h1>
+            <p class="lead text-muted mb-4">CS community hub for students and developers.</p>
 
             {% if user.is_authenticated %}
                 <p class="fs-4">Hello, <strong>{{ user.username }}</strong>! 👋</p>
             {% else %}
-                <a href="{% url 'accounts:signup' %}" class="btn btn-primary btn-lg mt-2 px-5 shadow-sm">Get Started</a>
+                <a href="{% url 'accounts:signup' %}" class="btn btn-primary btn-lg mb-4">Get Started</a>
             {% endif %}
 
-            <div class="mt-5">
-                <button id="pwa-install-btn" class="btn btn-dark btn-lg shadow-sm d-none">
-                    <i class="bi bi-download me-2"></i> Install CShub App
+            <div class="mt-4">
+                <button id="install-button-desktop" class="btn btn-primary btn-lg shadow d-none d-md-inline-block">
+                    <i class="bi bi-download me-2"></i> Install CShub Desktop
                 </button>
+
+                <button id="install-button-mobile" class="btn btn-primary btn-lg shadow d-inline-block d-md-none">
+                    <i class="bi bi-download me-2"></i> Install App (Mobile)
+                </button>
+                
+                <p id="install-help-text" class="text-muted small mt-2 d-none">
+                    If the button doesn't work, use your browser's "Add to Home Screen" menu.
+                </p>
             </div>
         </main>
     </div>
 
-    <button id="view-toggle-btn" class="btn shadow">
+    <button id="view-toggle-btn" class="btn btn-sm">
         </button>
 
     <script>
-        // 1. Handle Toggle Logic and Page Refresh
+        // 1. VIEW TOGGLE LOGIC
         const toggleBtn = document.getElementById('view-toggle-btn');
         const isDesktop = localStorage.getItem('viewMode') === 'desktop';
         
-        // Initial button state
         toggleBtn.innerHTML = isDesktop 
-            ? '<i class="bi bi-phone me-2"></i> Mobile View' 
-            : '<i class="bi bi-display me-2"></i> Desktop View';
+            ? '<i class="bi bi-phone"></i> Mobile View' 
+            : '<i class="bi bi-display"></i> Desktop View';
 
         toggleBtn.addEventListener('click', () => {
-            const nextMode = localStorage.getItem('viewMode') === 'desktop' ? 'mobile' : 'desktop';
-            localStorage.setItem('viewMode', nextMode);
-            window.location.reload(); // Force reload to apply viewport meta from the head script
+            localStorage.setItem('viewMode', isDesktop ? 'mobile' : 'desktop');
+            window.location.reload();
         });
 
-        // 2. PWA Logic (Detects if app can be installed)
+        // 2. PWA INSTALL LOGIC
         let deferredPrompt;
-        const installBtn = document.getElementById('pwa-install-btn');
+        const btnDesktop = document.getElementById('install-button-desktop');
+        const btnMobile = document.getElementById('install-button-mobile');
+        const helpText = document.getElementById('install-help-text');
 
         window.addEventListener('beforeinstallprompt', (e) => {
+            // Prevent Chrome 67 and earlier from automatically showing the prompt
             e.preventDefault();
+            // Stash the event so it can be triggered later.
             deferredPrompt = e;
-            installBtn.classList.remove('d-none');
+            console.log('PWA: Ready to install');
         });
 
-        installBtn.addEventListener('click', async () => {
-            if (!deferredPrompt) return;
+        async function triggerInstall() {
+            if (!deferredPrompt) {
+                // If the browser hasn't fired the event, show help text
+                helpText.classList.remove('d-none');
+                alert("To install: Click your browser's menu (⋮ or Share) and select 'Add to Home Screen'.");
+                return;
+            }
             deferredPrompt.prompt();
             const { outcome } = await deferredPrompt.userChoice;
-            if (outcome === 'accepted') installBtn.classList.add('d-none');
+            if (outcome === 'accepted') {
+                btnDesktop.classList.add('d-none');
+                btnMobile.classList.add('d-none');
+            }
             deferredPrompt = null;
-        });
+        }
+
+        btnDesktop.addEventListener('click', triggerInstall);
+        btnMobile.addEventListener('click', triggerInstall);
+
+        // Hide buttons if app is already installed
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            btnDesktop.classList.add('d-none');
+            btnMobile.classList.add('d-none');
+        }
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
