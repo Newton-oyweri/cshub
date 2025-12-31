@@ -5,7 +5,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <!-- Viewport will be controlled via JavaScript -->
     <meta name="theme-color" content="#0f172a">
     <title>CShub - Home</title>
     <!-- Icons & Bootstrap -->
@@ -47,7 +47,23 @@
         }
         .active-link i { color: #60a5fa !important; }
 
-        /* Removed .app-shell — no longer needed with fixed viewport */
+        /* View toggle button style */
+        #view-toggle-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1100;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid #334155;
+            color: #e2e8f0;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+        #view-toggle-btn i {
+            margin-right: 6px;
+        }
     </style>
 </head>
 <body>
@@ -57,7 +73,7 @@
                     border-bottom: 1px solid #334155;">
             <div class="container-fluid px-3 px-lg-4">
                 <div class="d-flex align-items-center w-100">
-                    <!-- Logo (hard left, fixed) -->
+                    <!-- Logo -->
                     <div class="d-flex align-items-center flex-shrink-0">
                         <a class="navbar-brand fw-bold d-flex align-items-center text-white" href="/">
                             <i class="bi bi-cpu me-2 fs-5" style="color:#60a5fa;"></i>
@@ -72,7 +88,7 @@
                         <div class="vr ms-2 opacity-25 d-none d-sm-block"
                              style="background-color:#475569;"></div>
                     </div>
-                    <!-- Scrollable nav links (pushed FAR RIGHT) -->
+                    <!-- Nav links -->
                     <div class="d-flex align-items-center ms-auto overflow-x-auto flex-nowrap"
                          style="-webkit-overflow-scrolling: touch;">
                         <div class="d-flex align-items-center gap-3 flex-nowrap">
@@ -122,72 +138,112 @@
                 <p class="fs-5 text-muted">Join the community today.</p>
                 <a href="{% url 'accounts:signup' %}" class="btn btn-primary btn-lg mt-3">Get Started</a>
             {% endif %}
+
+            <!-- Non-floating install buttons (now part of page flow) -->
+            <div class="mt-5 d-flex flex-column gap-3 align-items-center">
+                <button id="install-button-desktop"
+                        class="btn btn-primary btn-lg shadow d-none d-md-block"
+                        style="display: none;">
+                    <i class="bi bi-download me-2"></i> Install CShub App (Desktop)
+                </button>
+
+                <button id="install-button-mobile"
+                        class="btn btn-primary btn-lg shadow d-block d-md-none"
+                        style="display: none;">
+                    <i class="bi bi-download me-2"></i> Install App (Mobile)
+                </button>
+            </div>
         </main>
     </div>
 
-    <!-- Install buttons remain outside the viewport-root so they stay in screen corners on desktop -->
-    <button id="install-button-desktop"
-            class="btn btn-primary btn-lg shadow-lg d-none d-md-block"
-            style="display: none; position: fixed; bottom: 30px; right: 30px; z-index: 1050; border-radius: 50px; padding: 14px 28px;">
-        <i class="bi bi-download me-2"></i> Install CShub App
+    <!-- View Toggle Button -->
+    <button id="view-toggle-btn" class="btn btn-sm">
+        <i class="bi bi-phone"></i> <span>Mobile View</span>
     </button>
 
-    <button id="install-button-mobile"
-            class="btn btn-primary shadow-lg d-block d-md-none"
-            style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 1050; border-radius: 50px; padding: 12px 32px;">
-        <i class="bi bi-download me-2"></i> Install App
-    </button>
-
-    <!-- PWA Install Script + Standalone Mode Detection -->
-<script>
-    let deferredPrompt;
-    const desktopBtn = document.getElementById('install-button-desktop');
-    const mobileBtn = document.getElementById('install-button-mobile');
-
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-                         window.navigator.standalone === true;
-
-    if (isStandalone) {
-        if (desktopBtn) desktopBtn.style.display = 'none';
-        if (mobileBtn) mobileBtn.style.display = 'none';
-    } else {
-        window.addEventListener('load', () => {
-            if (desktopBtn) desktopBtn.style.display = 'block';
-            if (mobileBtn) mobileBtn.style.display = 'block';
-        });
-    }
-
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-    });
-
-    const tryInstall = async () => {
-        if (!deferredPrompt) {
-            if (navigator.userAgent.toLowerCase().includes('chrome')) {
-                alert("Almost ready! Refresh once or tap ⋮ → 'Add to Home screen'");
-            } else {
-                alert("To install: Tap Share → 'Add to Home Screen'");
-            }
-            return;
+    <!-- PWA Install Script + Viewport Toggle -->
+    <script>
+        // Default to mobile view
+        let isDesktopView = false;
+        const viewportMeta = document.querySelector('meta[name="viewport"]') || document.createElement('meta');
+        viewportMeta.name = 'viewport';
+        if (!document.querySelector('meta[name="viewport"]')) {
+            document.head.appendChild(viewportMeta);
         }
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') {
+
+        function setMobileView() {
+            viewportMeta.content = 'width=device-width, initial-scale=1, viewport-fit=cover';
+            document.getElementById('view-toggle-btn').innerHTML = '<i class="bi bi-display"></i> Desktop View';
+            isDesktopView = false;
+        }
+
+        function setDesktopView() {
+            viewportMeta.content = 'width=1024, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+            document.getElementById('view-toggle-btn').innerHTML = '<i class="bi bi-phone"></i> Mobile View';
+            isDesktopView = true;
+        }
+
+        // Initialize with mobile view
+        setMobileView();
+
+        // Toggle button
+        document.getElementById('view-toggle-btn').addEventListener('click', () => {
+            if (isDesktopView) {
+                setMobileView();
+            } else {
+                setDesktopView();
+            }
+        });
+
+        // PWA Install Logic (unchanged)
+        let deferredPrompt;
+        const desktopBtn = document.getElementById('install-button-desktop');
+        const mobileBtn = document.getElementById('install-button-mobile');
+
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                             window.navigator.standalone === true;
+
+        if (isStandalone) {
+            if (desktopBtn) desktopBtn.style.display = 'none';
+            if (mobileBtn) mobileBtn.style.display = 'none';
+        } else {
+            window.addEventListener('load', () => {
+                if (desktopBtn) desktopBtn.style.display = 'block';
+                if (mobileBtn) mobileBtn.style.display = 'block';
+            });
+        }
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+        });
+
+        const tryInstall = async () => {
+            if (!deferredPrompt) {
+                if (navigator.userAgent.toLowerCase().includes('chrome')) {
+                    alert("Almost ready! Refresh once or tap ⋮ → 'Add to Home screen'");
+                } else {
+                    alert("To install: Tap Share → 'Add to Home Screen'");
+                }
+                return;
+            }
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                desktopBtn.style.display = 'none';
+                mobileBtn.style.display = 'none';
+            }
+            deferredPrompt = null;
+        };
+
+        if (desktopBtn) desktopBtn.addEventListener('click', tryInstall);
+        if (mobileBtn) mobileBtn.addEventListener('click', tryInstall);
+
+        window.addEventListener('appinstalled', () => {
             desktopBtn.style.display = 'none';
             mobileBtn.style.display = 'none';
-        }
-        deferredPrompt = null;
-    };
-
-    if (desktopBtn) desktopBtn.addEventListener('click', tryInstall);
-    if (mobileBtn) mobileBtn.addEventListener('click', tryInstall);
-
-    window.addEventListener('appinstalled', () => {
-        desktopBtn.style.display = 'none';
-        mobileBtn.style.display = 'none';
-    });
-</script>
+        });
+    </script>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
