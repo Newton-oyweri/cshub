@@ -137,16 +137,11 @@ PWA_APP_ICONS = [
         'src': '/static/images/icons/logo.png',
         'sizes': '192x192',
         'type': 'image/png'
-    },
-    {
-        'src': '/static/images/icons/logo.png',
-        'sizes': '512x512',
-        'type': 'image/png'
     }
 ]
 PWA_APP_SPLASH_SCREEN = [
     {
-        'src': '/static/images/icons/logo.png',
+        'src': '/static/images/icons/icon-512x512.png',
         'media': '(device-width: 1125px) and (device-height: 2436px) and (-webkit-device-pixel-ratio: 3)'
     }
 ]
