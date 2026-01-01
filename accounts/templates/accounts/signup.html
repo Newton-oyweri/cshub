@@ -4,6 +4,7 @@
 <body>
     <div class="signup-container">
         <h3>Create your CS account</h3>
+        <p>Already have an account? <a href="{% url 'accounts:login' %}">Login</a></p>
      
         <form method="post">
             {% csrf_token %}
@@ -42,10 +43,6 @@
 
             <button type="submit">Sign Up</button>
         </form>
-
-        <div class="links">
-            <p>Already have an account? <a href="{% url 'accounts:login' %}">Login</a></p>
-        </div>
     </div>
 
     <style>
