@@ -37,36 +37,7 @@
             color: #ffffff !important;
         }
 
-        /* Fixed Toggle Button */
-        #view-toggle-btn {
-            position: fixed;
-            top: 80px; /* Below the nav */
-            right: 20px;
-            z-index: 1100;
-            background: rgba(15, 23, 42, 0.8);
-            backdrop-filter: blur(10px);
-            border: 1px solid #334155;
-            color: #e2e8f0;
-            padding: 8px 12px;
-            border-radius: 8px;
-        }
     </style>
-
-    <script>
-        // Check preference and set viewport BEFORE body renders
-        (function() {
-            const mode = localStorage.getItem('viewMode');
-            const viewport = document.createElement('meta');
-            viewport.name = "viewport";
-            if (mode === 'desktop') {
-                viewport.content = "width=1200, initial-scale=0.35";
-                document.documentElement.classList.add('force-desktop');
-            } else {
-                viewport.content = "width=device-width, initial-scale=1, viewport-fit=cover";
-            }
-            document.head.appendChild(viewport);
-        })();
-    </script>
 </head>
 <body>
 
@@ -94,90 +65,11 @@
                 </div>
             </div>
         </nav>
-
-        <main class="flex-grow-1 d-flex flex-column justify-content-center align-items-center text-center py-5">
-            <h1 class="display-4 fw-bold mb-3">Welcome to CShub!</h1>
-            <p class="lead text-muted mb-4">CS community hub for students and developers.</p>
-
-            {% if user.is_authenticated %}
-                <p class="fs-4">Hello, <strong>{{ user.username }}</strong>! 👋</p>
-            {% else %}
-                <a href="{% url 'accounts:signup' %}" class="btn btn-primary btn-lg mb-4">Get Started</a>
-            {% endif %}
-
-            <div class="mt-4">
-                <button id="install-button-desktop" class="btn btn-primary btn-lg shadow d-none d-md-inline-block">
-                    <i class="bi bi-download me-2"></i> Install CShub Desktop
-                </button>
-
-                <button id="install-button-mobile" class="btn btn-primary btn-lg shadow d-inline-block d-md-none">
-                    <i class="bi bi-download me-2"></i> Install App (Mobile)
-                </button>
-                
-                <p id="install-help-text" class="text-muted small mt-2 d-none">
-                    If the button doesn't work, use your browser's "Add to Home Screen" menu.
-                </p>
-            </div>
+<main class="flex-grow-1">
+            {% block content %}
+            {% endblock %}
         </main>
     </div>
-
-    <button id="view-toggle-btn" class="btn btn-sm">
-        </button>
-
-    <script>
-        // 1. VIEW TOGGLE LOGIC
-        const toggleBtn = document.getElementById('view-toggle-btn');
-        const isDesktop = localStorage.getItem('viewMode') === 'desktop';
-        
-        toggleBtn.innerHTML = isDesktop 
-            ? '<i class="bi bi-phone"></i> Mobile View' 
-            : '<i class="bi bi-display"></i> Desktop View';
-
-        toggleBtn.addEventListener('click', () => {
-            localStorage.setItem('viewMode', isDesktop ? 'mobile' : 'desktop');
-            window.location.reload();
-        });
-
-        // 2. PWA INSTALL LOGIC
-        let deferredPrompt;
-        const btnDesktop = document.getElementById('install-button-desktop');
-        const btnMobile = document.getElementById('install-button-mobile');
-        const helpText = document.getElementById('install-help-text');
-
-        window.addEventListener('beforeinstallprompt', (e) => {
-            // Prevent Chrome 67 and earlier from automatically showing the prompt
-            e.preventDefault();
-            // Stash the event so it can be triggered later.
-            deferredPrompt = e;
-            console.log('PWA: Ready to install');
-        });
-
-        async function triggerInstall() {
-            if (!deferredPrompt) {
-                // If the browser hasn't fired the event, show help text
-                helpText.classList.remove('d-none');
-                alert("To install: Click your browser's menu (⋮ or Share) and select 'Add to Home Screen'.");
-                return;
-            }
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            if (outcome === 'accepted') {
-                btnDesktop.classList.add('d-none');
-                    
-                btnMobile.classList.add('d-none');
-            }
-            deferredPrompt = null;
-        }
-
-        btnDesktop.addEventListener('click', triggerInstall);
-        btnMobile.addEventListener('click', triggerInstall);
-
-        // Hide buttons if app is already installed
-        if (window.matchMedia('(display-mode: standalone)').matches) {
-            btnDesktop.classList.add('d-none');
-            btnMobile.classList.add('d-none');
-        }
-    </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>

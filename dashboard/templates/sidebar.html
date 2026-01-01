@@ -1,0 +1,81 @@
+<aside class="sidebar d-flex flex-column" style="background: #1e1f22; min-height: 100vh; border-right: 1px solid #2a2c31;">
+  
+    <!-- Navigation - takes all available space in the middle -->
+    <nav class="flex-grow-1 py-4 overflow-auto">
+        <ul class="nav flex-column px-2">
+            
+            <!-- Home -->
+            <li class="nav-item mb-1">
+                <a class="nav-link d-flex align-items-center rounded px-3 py-2 text-decoration-none transition {% if request.resolver_match.url_name == 'home' %}active{% endif %}"
+                   href="{% url 'home' %}">
+                    <i class="bi bi-house-door me-3 fs-5 opacity-75"></i>
+                    <span class="{% if request.resolver_match.url_name == 'home' %}gradient-text{% else %}text-white{% endif %}">Home</span>
+                </a>
+            </li>
+       
+            <!-- Community -->
+            <li class="nav-item mb-1">
+                <a class="nav-link d-flex align-items-center rounded px-3 py-2 text-decoration-none transition {% if request.resolver_match.url_name == 'community' %}active{% endif %}"
+                   href="{% url 'dashboard:community' %}">
+                    <i class="bi bi-people me-3 fs-5 opacity-75"></i>
+                    <span class="{% if request.resolver_match.url_name == 'community' %}gradient-text{% else %}text-white{% endif %}">Community</span>
+                </a>
+            </li>
+       
+        </ul>
+    </nav>
+
+    <!-- User section - always pinned to the very bottom -->
+    <div class="p-3 border-top" style="border-color: #2a2c31 !important; background: #1e1f22;">
+        {% if user.is_authenticated %}
+            <div class="d-flex align-items-start">
+                <i class="bi bi-person-circle fs-3 me-3 mt-1" style="color: #5865f2;"></i>
+                <div class="flex-grow-1">
+                    <div class="fw-semibold text-white" style="font-size: 0.95rem;">{{ user.username }}</div>
+                    <small class="text-muted d-block">#{{ user.id|default:"0000"|stringformat:"04d" }}</small>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</aside>
+
+<!-- Custom CSS for Discord-like effects + Gradient Text -->
+<style>
+    .sidebar .nav-link {
+        transition: all 0.2s ease;
+        color: white;
+    }
+    
+    .sidebar .nav-link:hover {
+        background: #35373c;
+        border-radius: 8px;
+    }
+    
+    .sidebar .nav-link:hover i {
+        opacity: 1 !important;
+    }
+    
+    .sidebar .nav-link.active {
+        background: rgba(88, 101, 242, 0.2);
+        border-radius: 8px;
+        box-shadow: 0 0 12px rgba(88, 101, 242, 0.25);
+    }
+    
+    .sidebar .nav-link.active i {
+        opacity: 1;
+        color: #a78bfa;
+    }
+    
+    /* Gradient text only on active item */
+    .gradient-text {
+        background: linear-gradient(90deg, #60a5fa, #a78bfa);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-weight: 600;
+    }
+    
+    .transition {
+        transition: background 0.2s, color 0.2s, opacity 0.2s;
+    }
+</style>
