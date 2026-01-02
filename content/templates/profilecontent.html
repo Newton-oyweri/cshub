@@ -1,0 +1,123 @@
+{% extends 'profile.html' %}
+
+{% block profile_content %}
+<div class="w-100 h-100 d-flex flex-column text-white">
+
+    <!-- Cover Banner -->
+    <div class="w-100 position-relative"
+         style="height: 180px; background: linear-gradient(135deg, #5865f2, #7c5cff);">
+
+        <!-- Avatar -->
+        <div class="position-absolute"
+             style="bottom: -40px; left: 32px;">
+            <div class="rounded-circle d-flex align-items-center justify-content-center"
+                 style="width: 80px; height: 80px; background: #1e1f22; border: 4px solid #5865f2;">
+                <i class="bi bi-person-fill fs-1 text-white"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Name + Action -->
+    <div class="flex-grow-0 mt-5 px-4 d-flex justify-content-between align-items-center">
+        <div>
+            <h4 class="fw-bold text-white mb-1">{{ user.username|default:"CS Student" }}</h4>
+            <small style="color: #9aa0ff;">Computer Science • Developer</small>
+        </div>
+        <button class="btn btn-outline-primary btn-sm"
+                style="border-color: #5865f2; color: #5865f2;">
+            Edit Profile
+        </button>
+    </div>
+
+    <!-- Stats -->
+    <div class="row g-3 my-4 px-4">
+        <div class="col-4">
+            <div class="p-3 rounded text-center"
+                 style="background: #1e1f22;">
+                <i class="bi bi-file-earmark-text-fill fs-5 mb-1" style="color: #5865f2;"></i>
+                <div class="fw-semibold text-white">12</div>
+                <small style="color: #5e66df;">Posts</small>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="p-3 rounded text-center"
+                 style="background: #1e1f22;">
+                <i class="bi bi-folder-fill fs-5 mb-1" style="color: #5865f2;"></i>
+                <div class="fw-semibold text-white">5</div>
+                <small style="color: #9aa0ff;">Projects</small>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="p-3 rounded text-center"
+                 style="background: #1e1f22;">
+                <i class="bi bi-calendar-fill fs-5 mb-1" style="color: #5865f2;"></i>
+                <div class="fw-semibold text-white">3</div>
+                <small style="color: #9aa0ff;">Years Active</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="px-4 mb-3">
+        <ul class="nav nav-tabs" role="tablist" style="border-bottom: 2px solid #5865f2;">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active text-white" style="background: none; border: none;"
+                        id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button"
+                        role="tab">Overview</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link text-white" style="background: none; border: none;"
+                        id="projects-tab" data-bs-toggle="tab" data-bs-target="#projects" type="button"
+                        role="tab">Projects</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link text-white" style="background: none; border: none;"
+                        id="posts-tab" data-bs-toggle="tab" data-bs-target="#posts" type="button"
+                        role="tab">Posts</button>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="flex-grow-1 px-4 pb-4 tab-content" style="overflow-y: auto;">
+        
+        <!-- Overview Tab -->
+        <div class="tab-pane fade show active" id="overview" role="tabpanel">
+            <div class="rounded p-4 mb-4" style="background: #1e1f22;">
+                <h6 class="fw-semibold mb-2" style="color: #5865f2;">About</h6>
+                <p style="color: #ffffff;">
+                    Passionate CS student exploring backend systems, UI structuring, and real-world projects.
+                </p>
+            </div>
+            <div class="rounded p-4 mb-4" style="background: #1e1f22;">
+                <h6 class="fw-semibold mb-2" style="color: #5865f2;">Skills</h6>
+                <p style="color: #ffffff;">Python, Django, HTML/CSS, JS, Git, System Design</p>
+            </div>
+        </div>
+
+        <!-- Projects Tab -->
+        <div class="tab-pane fade" id="projects" role="tabpanel">
+            <div class="rounded p-4 mb-3" style="background: #1e1f22;">
+                <h6 class="fw-semibold mb-2" style="color: #5865f2;">Portfolio Project #1</h6>
+                <p style="color: #ffffff;">Mini trading app built with Django and vanilla JS.</p>
+            </div>
+            <div class="rounded p-4 mb-3" style="background: #1e1f22;">
+                <h6 class="fw-semibold mb-2" style="color: #5865f2;">Portfolio Project #2</h6>
+                <p style="color: #ffffff;">CS forum & chat platform for student collaboration.</p>
+            </div>
+        </div>
+
+        <!-- Posts Tab -->
+        <div class="tab-pane fade" id="posts" role="tabpanel">
+            <div class="rounded p-4 mb-3" style="background: #1e1f22;">
+                <p style="color: #ffffff;">Just shared my first mini project with the CS community!</p>
+            </div>
+            <div class="rounded p-4 mb-3" style="background: #1e1f22;">
+                <p style="color: #ffffff;">Working on a dashboard layout inspired by GitHub and Discord.</p>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

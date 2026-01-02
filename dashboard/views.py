@@ -10,3 +10,6 @@ def community(request):
 
 def base_dashboard(request):
     return render(request, 'base_dashboard.html')
+
+def profile(request):
+    return render(request, 'profile.html')

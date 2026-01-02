@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'accounts',
     'pwa',
     'dashboard',
+    'content',
 ]
 
 MIDDLEWARE = [

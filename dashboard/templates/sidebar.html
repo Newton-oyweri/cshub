@@ -16,7 +16,7 @@
             <!-- Community -->
             <li class="nav-item mb-1">
                 <a class="nav-link d-flex align-items-center rounded px-3 py-2 text-decoration-none transition {% if request.resolver_match.url_name == 'community' %}active{% endif %}"
-                   href="{% url 'dashboard:community' %}">
+                   href="{% url 'content:communitycontent' %}">
                     <i class="bi bi-people me-3 fs-5 opacity-75"></i>
                     <span class="{% if request.resolver_match.url_name == 'community' %}gradient-text{% else %}text-white{% endif %}">Community</span>
                 </a>
@@ -25,18 +25,31 @@
         </ul>
     </nav>
 
-    <!-- User section - always pinned to the very bottom -->
-    <div class="p-3 border-top" style="border-color: #2a2c31 !important; background: #1e1f22;">
+<!-- User section - always pinned to the very bottom -->
+<a href="{% url 'content:profilecontent' %}"
+   class="text-decoration-none"
+   style="color: inherit;">
+
+    <div class="p-3 border-top"
+         style="border-color: #2a2c31 !important; background: #1e1f22; cursor: pointer;">
+
         {% if user.is_authenticated %}
-            <div class="d-flex align-items-start">
-                <i class="bi bi-person-circle fs-3 me-3 mt-1" style="color: #5865f2;"></i>
-                <div class="flex-grow-1">
-                    <div class="fw-semibold text-white" style="font-size: 0.95rem;">{{ user.username }}</div>
-                    <small class="text-muted d-block">#{{ user.id|default:"0000"|stringformat:"04d" }}</small>
+        <div class="d-flex align-items-start">
+            <i class="bi bi-person-circle fs-3 me-3 mt-1" style="color: #5865f2;"></i>
+            <div class="flex-grow-1">
+                <div class="fw-semibold text-white" style="font-size: 0.95rem;">
+                    {{ user.username }}
                 </div>
+                <small class="text-muted d-block">
+                    #{{ user.id|default:"0000"|stringformat:"04d" }}
+                </small>
             </div>
+        </div>
         {% endif %}
+
     </div>
+</a>
+
 </aside>
 
 <!-- Custom CSS for Discord-like effects + Gradient Text -->
