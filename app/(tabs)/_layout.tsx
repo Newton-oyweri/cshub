@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import { StyleSheet, Text, View, StatusBar, SafeAreaView } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { Animated } from 'react-native';
 
 function Header() {
@@ -27,21 +27,14 @@ export default function Layout() {
   });
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Force Dark Status Bar Content (Important for White Header) */}
-      <StatusBar 
-        barStyle="dark-content" 
-        backgroundColor="#FFFFFF" 
-        translucent={false}
-      />
-
+    <View style={styles.container}>
       <Header />
 
       <Tabs
         screenOptions={{
           headerShown: false,
           tabBarStyle: {
-            backgroundColor: '#FFFFFF',
+            backgroundColor: '#FFFFFF', // changed (clean white)
             position: 'absolute',
             bottom: 0,
             left: 0,
@@ -49,12 +42,8 @@ export default function Layout() {
             transform: [{ translateY: tabBarTranslateY }],
             opacity: tabBarOpacity,
             borderTopWidth: 0.5,
-            borderTopColor: '#E6EAF0',
-            height: 60,
-            paddingBottom: 8,
+            borderTopColor: '#E6EAF0', // soft white border
           },
-          tabBarActiveTintColor: '#0DDDF0',   // Skyla Cyan
-          tabBarInactiveTintColor: '#666',
         }}
       >
         {/* HIDDEN SCREENS */}
@@ -87,35 +76,24 @@ export default function Layout() {
           }}
         />
       </Tabs>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: '#FFFFFF' 
-  },
+  container: { flex: 1 },
 
   header: {
+    
     height: 60,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFFFF', // changed from dark → white
     alignItems: 'center',
-    justifyContent: 'center',        // Changed to center for better look
-    borderBottomWidth: 1,
-    borderBottomColor: '#E6EAF0',
-    // shadow for premium feel
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 3,
+    justifyContent: 'flex-end',
   },
 
   headerText: {
-    color: '#1C3150',
-    fontSize: 22,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    color: '#1C3150', // keep brand dark blue (better contrast on white)
+    fontSize: 20,
+    fontWeight: 'bold',
   },
 });

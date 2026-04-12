@@ -2,276 +2,182 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView
+  SafeAreaView,
+  Image
 } from 'react-native';
-import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
 import { supabase } from '../../lib/supabase';
 
-// Handle browser session cleanup
 WebBrowser.maybeCompleteAuthSession();
 
 export default function AccountPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [session, setSession] = useState<any>(null);
-  const [profile, setProfile] = useState<any>({
-    name: '',
-    year_of_study: '',
-    institution: '',
-    bio: '',
-    github_url: '',
-    portfolio_url: ''
-  });
-  const [saving, setSaving] = useState(false);
+  const [initializing, setInitializing] = useState(true);
 
-  // --- AUTH INITIALIZATION ---
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    console.log("--- APP MOUNT: Checking initial session ---");
+    
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) console.error("GetSession Error:", error.message);
+      console.log("Initial Session Found:", !!session);
       setSession(session);
+      setInitializing(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
+      console.log("--- AUTH STATE CHANGE ---");
+      console.log("Event Type:", event);
+      console.log("Session Active:", !!currentSession);
+      setSession(currentSession);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      console.log("--- Unsubscribing Auth Listener ---");
+      subscription.unsubscribe();
+    };
   }, []);
 
-  // --- PROFILE LOADER ---
-  useEffect(() => {
-    if (!session) return;
-    const loadProfile = async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .maybeSingle();
-      
-      if (error) {
-        console.error('Profile fetch error:', error.message);
-        return;
-      }
-      if (data) setProfile(data);
-    };
-    loadProfile();
-  }, [session]);
-
-  // --- GITHUB OAUTH FLOW ---
   const handleGitHubLogin = async () => {
+    console.log("--- START: GitHub Login Flow ---");
     setLoading(true);
+    
     try {
-      // Correctly generates: exp://exp.host/@isackskyla/cshub/--/auth-callback 
-      // or cshub://auth-callback in production
-      const redirectTo = Linking.createURL('auth-callback');
-      
+      const redirectTo = AuthSession.makeRedirectUri({
+        scheme: 'cshub',
+      });
+      console.log("Redirect URI generated:", redirectTo);
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'github',
-        options: {
-          redirectTo,
-          skipBrowserRedirect: false,
+        options: { 
+          redirectTo, 
+          skipBrowserRedirect: true 
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase OAuth Error:", error.message);
+        throw error;
+      }
 
       if (data?.url) {
+        console.log("Opening WebBrowser with URL:", data.url);
         const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
         
-        // If the browser returns a success URL containing tokens
+        console.log("WebBrowser closed. Result Type:", result.type);
+
         if (result.type === 'success' && result.url) {
-          const { access_token, refresh_token } = extractTokensFromUrl(result.url);
+          console.log("Success! Full Redirect URL received:", result.url);
+
+          // Robust parsing
+          const formattedUrl = result.url.replace('#', '?');
+          const params = new URL(formattedUrl).searchParams;
+          
+          const access_token = params.get('access_token');
+          const refresh_token = params.get('refresh_token');
+
+          console.log("Access Token extracted:", !!access_token);
+          console.log("Refresh Token extracted:", !!refresh_token);
+
           if (access_token && refresh_token) {
-            await supabase.auth.setSession({ access_token, refresh_token });
+            console.log("Attempting to set Supabase session...");
+            const { error: sessionError } = await supabase.auth.setSession({ 
+              access_token, 
+              refresh_token 
+            });
+
+            if (sessionError) {
+              console.error("setSession Error:", sessionError.message);
+              throw sessionError;
+            }
+            console.log("setSession successful! onAuthStateChange should trigger now.");
+          } else {
+            console.warn("Tokens missing from URL. Check your Supabase Redirect settings.");
           }
+        } else {
+          console.log("Login cancelled or failed. Result:", result);
         }
+      } else {
+        console.error("No data.url returned from signInWithOAuth");
       }
     } catch (error: any) {
-      Alert.alert('GitHub Error', error.message);
+      console.error("CATCH: Login Exception:", error);
+      Alert.alert('Login Error', error.message);
     } finally {
       setLoading(false);
+      console.log("--- END: GitHub Login Flow ---");
     }
   };
 
-  const extractTokensFromUrl = (url: string) => {
-    const params = new URLSearchParams(url.split('#')[1]);
-    return {
-      access_token: params.get('access_token'),
-      refresh_token: params.get('refresh_token'),
-    };
+  const handleLogout = async () => {
+    console.log("--- Logging Out ---");
+    const { error } = await supabase.auth.signOut();
+    if (error) console.error("Logout Error:", error.message);
   };
 
-  const handleAuth = async (type: 'login' | 'signup') => {
-    if (!email || !password) return Alert.alert('Error', 'Enter email and password');
-    setLoading(true);
-    const { error } = type === 'login'
-      ? await supabase.auth.signInWithPassword({ email, password })
-      : await supabase.auth.signUp({ email, password });
-    
-    if (error) Alert.alert('Auth Error', error.message);
-    else if (type === 'signup') Alert.alert('Success', 'Check your email!');
-    setLoading(false);
-  };
-
-  const saveProfile = async () => {
-    if (!session) return;
-    setSaving(true);
-    const { error } = await supabase.from('profiles').upsert({
-      id: session.user.id,
-      ...profile,
-      email: session.user.email,
-      updated_at: new Date(),
-    });
-    setSaving(false);
-    if (error) Alert.alert('Error', error.message);
-    else Alert.alert('Success', 'Profile updated!');
-  };
-
-  // --- UI RENDERING (LOGGED IN) ---
-  if (session) {
+  if (initializing) {
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-          <View style={styles.headerArea}>
-            <Text style={styles.title}>Account</Text>
-            <Text style={styles.subtitle}>{session.user.email}</Text>
-          </View>
+      <View style={styles.center}>
+        <ActivityIndicator size="large" />
+        <Text style={{ marginTop: 10 }}>Checking Session...</Text>
+      </View>
+    );
+  }
 
-          <View style={styles.card}>
-            <Text style={styles.sectionLabel}>Profile Details</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Full Name"
-              value={profile?.name}
-              onChangeText={(t) => setProfile({ ...profile, name: t })}
-            />
-            <View style={styles.row}>
-              <TextInput
-                style={[styles.input, { flex: 1 }]}
-                placeholder="Year"
-                value={profile?.year_of_study}
-                onChangeText={(t) => setProfile({ ...profile, year_of_study: t })}
-              />
-              <TextInput
-                style={[styles.input, { flex: 2 }]}
-                placeholder="Institution"
-                value={profile?.institution}
-                onChangeText={(t) => setProfile({ ...profile, institution: t })}
-              />
-            </View>
-            <TextInput
-              style={[styles.input, styles.bio]}
-              placeholder="Tell us about yourself..."
-              multiline
-              value={profile?.bio}
-              onChangeText={(t) => setProfile({ ...profile, bio: t })}
-            />
-          </View>
+  if (session) {
+    const userMeta = session.user?.user_metadata;
+    console.log("Rendering UI for User:", session.user?.email);
 
-          <View style={styles.card}>
-            <Text style={styles.sectionLabel}>External Links</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="GitHub Profile URL"
-              value={profile?.github_url}
-              onChangeText={(t) => setProfile({ ...profile, github_url: t })}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Portfolio URL"
-              value={profile?.portfolio_url}
-              onChangeText={(t) => setProfile({ ...profile, portfolio_url: t })}
-            />
-          </View>
-
-          <TouchableOpacity style={styles.primaryBtn} onPress={saveProfile} disabled={saving}>
-            <Text style={styles.primaryBtnText}>{saving ? 'Saving...' : 'Update Profile'}</Text>
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.content}>
+          <Image source={{ uri: userMeta?.avatar_url }} style={styles.avatar} />
+          <Text style={styles.name}>{userMeta?.full_name || 'User'}</Text>
+          <Text style={styles.email}>{session.user?.email}</Text>
+          
+          <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+            <Text style={styles.logoutText}>Sign Out</Text>
           </TouchableOpacity>
-
-          <TouchableOpacity style={styles.outlineBtn} onPress={() => supabase.auth.signOut()}>
-            <Text style={styles.outlineBtnText}>Sign Out</Text>
-          </TouchableOpacity>
-        </ScrollView>
+        </View>
       </SafeAreaView>
     );
   }
 
-  // --- UI RENDERING (LOGIN) ---
   return (
     <View style={styles.authContainer}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <View style={styles.loginCard}>
-          <Text style={styles.authTitle}>Welcome</Text>
-          <Text style={styles.authSubtitle}>Sign in to cshub</Text>
-          
-          <TextInput
-            style={styles.input}
-            placeholder="Email Address"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-          />
-
-          <TouchableOpacity style={styles.primaryBtn} onPress={() => handleAuth('login')} disabled={loading}>
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>Log In</Text>}
-          </TouchableOpacity>
-
-          <View style={styles.divider}>
-            <View style={styles.line} /><Text style={styles.dividerText}>OR</Text><View style={styles.line} />
-          </View>
-
-          <TouchableOpacity style={[styles.primaryBtn, styles.githubBtn]} onPress={handleGitHubLogin}>
-            <Text style={styles.primaryBtnText}>Continue with GitHub</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.textBtn} onPress={() => handleAuth('signup')}>
-            <Text style={styles.textBtnText}>Don't have an account? <Text style={{fontWeight: '700'}}>Sign Up</Text></Text>
-          </TouchableOpacity>
-        </View>
-      </KeyboardAvoidingView>
+      <Text style={styles.logo}>cshub</Text>
+      <TouchableOpacity 
+        style={styles.loginBtn} 
+        onPress={handleGitHubLogin} 
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.loginText}>Continue with GitHub</Text>
+        )}
+      </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#F8F9FA' },
-  authContainer: { flex: 1, backgroundColor: '#FFFFFF', justifyContent: 'center', padding: 24 },
-  loginCard: { width: '100%' },
-  scrollContainer: { flexGrow: 1, padding: 20 },
-  authTitle: { fontSize: 32, fontWeight: '800', textAlign: 'center', marginBottom: 8 },
-  authSubtitle: { fontSize: 16, color: '#666', textAlign: 'center', marginBottom: 32 },
-  headerArea: { marginVertical: 30, alignItems: 'center' },
-  title: { fontSize: 28, fontWeight: '800' },
-  subtitle: { color: '#007AFF', fontSize: 14, fontWeight: '600' },
-  sectionLabel: { fontSize: 13, fontWeight: '700', marginBottom: 16, textTransform: 'uppercase' },
-  card: { backgroundColor: '#FFF', borderRadius: 24, padding: 20, marginBottom: 20, elevation: 3 },
-  row: { flexDirection: 'row', gap: 12 },
-  input: { backgroundColor: '#F1F3F5', padding: 16, borderRadius: 14, marginBottom: 12 },
-  bio: { height: 100, textAlignVertical: 'top' },
-  primaryBtn: { backgroundColor: '#1A1A1A', padding: 18, borderRadius: 16, alignItems: 'center', marginTop: 10 },
-  githubBtn: { backgroundColor: '#24292e' },
-  primaryBtnText: { color: '#FFF', fontWeight: '700' },
-  outlineBtn: { padding: 18, alignItems: 'center', marginTop: 10, borderRadius: 16, borderWidth: 1, borderColor: '#E9ECEF' },
-  outlineBtnText: { color: '#FF3B30', fontWeight: '600' },
-  divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 20 },
-  line: { flex: 1, height: 1, backgroundColor: '#E9ECEF' },
-  dividerText: { marginHorizontal: 10, color: '#999', fontSize: 12 },
-  textBtn: { marginTop: 20, alignItems: 'center' },
-  textBtnText: { color: '#666' }
+  container: { flex: 1, backgroundColor: '#fff' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  authContainer: { flex: 1, justifyContent: 'center', padding: 30 },
+  content: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  logo: { fontSize: 42, fontWeight: '900', textAlign: 'center', marginBottom: 60 },
+  avatar: { width: 100, height: 100, borderRadius: 50, marginBottom: 20, backgroundColor: '#eee' },
+  name: { fontSize: 24, fontWeight: '800' },
+  email: { fontSize: 16, color: '#666', marginBottom: 40 },
+  loginBtn: { backgroundColor: '#24292e', padding: 18, borderRadius: 12, alignItems: 'center' },
+  loginText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  logoutBtn: { padding: 15 },
+  logoutText: { color: '#ff4444', fontWeight: '600' }
 });
