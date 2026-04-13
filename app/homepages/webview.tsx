@@ -44,14 +44,6 @@ export default function WebViewScreen() {
         <Text style={styles.headerTitle} numberOfLines={1}>
           GitHub Repository
         </Text>
-
-        <TouchableOpacity 
-          style={styles.closeButton} 
-          onPress={() => router.back()}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="close" size={26} color="#fff" />
-        </TouchableOpacity>
       </View>
 
       {/* Progress Bar */}

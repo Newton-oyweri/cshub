@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { scrollYValue } from './_layout';
+import { scrollYValue } from '../constants/Animation';
 
 const THREADS = [
   {

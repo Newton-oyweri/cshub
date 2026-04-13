@@ -11,9 +11,9 @@ import {
   Dimensions,
   ActivityIndicator
 } from 'react-native';
-import { scrollYValue } from './_layout';
+import { scrollYValue } from '../constants/Animation';
 import { useRouter } from 'expo-router';
-import { supabase } from '../../lib/supabase'; // Import your supabase client
+import { supabase } from '../../lib/supabase';
 
 const logo = require('../../assets/images/logo.png');
 const { width } = Dimensions.get('window');
@@ -29,7 +29,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const [posts, setPosts] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [user, setUser] = useState<any>(null); // State for the logged-in user
+  const [user, setUser] = useState<any>(null);
 
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -57,12 +57,10 @@ export default function HomeScreen() {
   useEffect(() => {
     fetchPosts();
 
-    // Get current session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
     });
 
-    // Listen for auth changes (so the UI updates immediately after login)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
@@ -85,15 +83,33 @@ export default function HomeScreen() {
         )}
 
         {posts.map((post: any) => {
-          // Determine the user details to show on the card
-          // If the post belongs to the current user, show their real info
+          // Logic for display remains consistent as requested
           const displayName = user?.user_metadata?.full_name || "Skyla User";
-          const displayAvatar = user?.user_metadata?.avatar_url ? { uri: user.user_metadata.avatar_url } : logo;
+          const displayAvatar = user?.user_metadata?.avatar_url || "";
+          const displayEmail = user?.email || "No email shared";
+          const githubUsername = user?.user_metadata?.preferred_username || "";
 
           return (
             <View key={post.id} style={styles.card}>
-              <View style={styles.header}>
-                <Image source={displayAvatar} style={styles.avatar} />
+              <TouchableOpacity 
+                style={styles.header}
+                activeOpacity={0.7}
+                onPress={() => {
+                   router.push({
+                     pathname: '../homepages/profileview',
+                     params: { 
+                        name: displayName,
+                        avatar: displayAvatar,
+                        email: displayEmail,
+                        username: githubUsername
+                     }
+                   });
+                }}
+              >
+                <Image 
+                  source={displayAvatar ? { uri: displayAvatar } : logo} 
+                  style={styles.avatar} 
+                />
 
                 <View style={styles.headerInfo}>
                   <Text style={styles.name}>{displayName}</Text>
@@ -105,7 +121,7 @@ export default function HomeScreen() {
                     <Text style={styles.languageText}>{post.language}</Text>
                   </View>
                 )}
-              </View>
+              </TouchableOpacity>
 
               <Image 
                 source={{ uri: post.source || post.image }} 
@@ -122,7 +138,7 @@ export default function HomeScreen() {
 
               <View style={styles.statsRow}>
                 <View style={styles.stat}>
-                  <Ionicons name="star" size={18} color={SKYLA_ORANGE} />
+                   <Ionicons name="star" size={18} color={SKYLA_ORANGE} />
                   <Text style={styles.statText}>{post.stars?.toLocaleString() || 0}</Text>
                 </View>
                 <View style={styles.stat}>
@@ -148,19 +164,30 @@ export default function HomeScreen() {
                   <Ionicons name="git-branch-outline" size={22} color={SKYLA_CYAN} />
                   <Text style={styles.actionText}>Fork</Text>
                 </TouchableOpacity>
+                   
+                <TouchableOpacity         onPress={() => {
+                   router.push({   pathname: '../homepages/profileview'  , params: { 
+                        name: displayName,
+                        avatar: displayAvatar,
+                        email: displayEmail,
+                        username: githubUsername
+                     } });
+                }} style={styles.actionButton}>
+                  <Ionicons name="chatbubble-ellipses-outline" size={22} color="#ddd" />
+                  <Text style={styles.actionText}>Comment</Text>
+                </TouchableOpacity>
 
                 <TouchableOpacity 
-                  style={[styles.actionButton, styles.viewButton]} 
+                  style={[styles.actionButton]} 
                   onPress={() => {
-                    const finalUrl = post.githubUrl || "https://github.com";
+                    const finalUrl = post.githubUrl || "https://github.com/Newton-oyweri/cshub";
                     router.push({
                       pathname: '../homepages/webview',
                       params: { url: finalUrl }
                     });
-                  }}
-                >
-                  <Ionicons name="open-outline" size={22} color="#000" />
-                  <Text style={styles.viewButtonText}>View Project</Text>
+                  }}>
+                  <Ionicons name="logo-github" size={22} color="#ddd" />
+                  <Text style={styles.actionText}>Repo</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -172,7 +199,6 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  // ... Styles stay exactly the same as your provided code ...
   container: { flex: 1, backgroundColor: SKYLA_DARK },
   scrollContent: { paddingBottom: 100, paddingHorizontal: 10 },
   card: { backgroundColor: SKYLA_NAVY_MID, borderRadius: 18, marginBottom: 16, overflow: 'hidden', elevation: 6 },
@@ -194,7 +220,5 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)', padding: 10 },
   actionButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, gap: 6 },
   actionText: { color: '#ddd', fontWeight: '600' },
-  viewButton: { backgroundColor: SKYLA_CYAN, borderRadius: 12, marginHorizontal: 6 },
-  viewButtonText: { color: '#000', fontWeight: '700' },
   empty: { color: '#666', textAlign: 'center', marginTop: 120, fontSize: 16 },
 });
