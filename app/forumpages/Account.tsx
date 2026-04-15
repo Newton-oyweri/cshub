@@ -9,7 +9,7 @@ import {
   SafeAreaView,
   Image,
   StatusBar,
-  ScrollView // Added ScrollView
+  ScrollView
 } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
@@ -41,9 +41,15 @@ export default function AccountPage() {
     setLoading(true);
     try {
       const redirectTo = AuthSession.makeRedirectUri({ scheme: 'cshub' });
+      
+      // FIXED: Added 'public_repo' scope to allow Star/Fork actions
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'github',
-        options: { redirectTo, skipBrowserRedirect: true },
+        options: { 
+          redirectTo, 
+          skipBrowserRedirect: true,
+          scopes: 'public_repo read:user' 
+        },
       });
 
       if (error) throw error;
@@ -78,26 +84,32 @@ export default function AccountPage() {
     return (
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="light-content" />
-        {/* Wrap content in ScrollView so Repos don't get cut off */}
         <ScrollView 
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
+          {/* Profile Header: Updated to match your ProfileView structure */}
           <View style={styles.profileHeader}>
             <View style={styles.avatarContainer}>
               <Image source={{ uri: userMeta?.avatar_url }} style={styles.avatar} />
               <View style={styles.onlineBadge} />
             </View>
-            <Text style={styles.name}>{userMeta?.full_name || 'Developer'}</Text>
-            <Text style={styles.email}>{session.user?.email}</Text>
+            <View style={styles.headerTextContainer}>
+              <Text style={styles.name}>{userMeta?.full_name || userMeta?.user_name || 'Developer'}</Text>
+              <Text style={styles.email}>{session.user?.email}</Text>
+            </View>
           </View>
 
-          {/* List of Repos */}
+          {/* Repository Horizontal List */}
           <GithubRepos session={session} />
 
-          <TouchableOpacity style={styles.logoutBtn} onPress={() => supabase.auth.signOut()}>
-            <Ionicons name="log-out-outline" size={20} color="#f87171" />
-            <Text style={styles.logoutText}>Sign Out</Text>
+          {/* Logout Section */}
+          <TouchableOpacity 
+            style={styles.logoutBtn} 
+            onPress={async () => await supabase.auth.signOut()}
+          >
+            <Ionicons name="log-out-outline" size={22} color="#f87171" />
+            <Text style={styles.logoutText}>Sign Out from GitHub</Text>
           </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
@@ -107,11 +119,13 @@ export default function AccountPage() {
   return (
     <View style={styles.authContainer}>
       <StatusBar barStyle="light-content" />
-      <View style={styles.logoCircle}>
-        <Text style={styles.logoText}>CS</Text>
+      <View style={styles.heroSection}>
+        <View style={styles.logoCircle}>
+          <Text style={styles.logoText}>CS</Text>
+        </View>
+        <Text style={styles.welcomeText}>Welcome to cshub</Text>
+        <Text style={styles.subText}>Premium Student Resources & Dashboards</Text>
       </View>
-      <Text style={styles.welcomeText}>Welcome to cshub</Text>
-      <Text style={styles.subText}>Premium Student Resources & Dashboards</Text>
 
       <TouchableOpacity 
         style={styles.loginBtn} 
@@ -133,31 +147,48 @@ export default function AccountPage() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0f172a' },
-  scrollContent: { paddingHorizontal: 25, paddingBottom: 40 }, // Added padding for scroll
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 40 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  authContainer: { flex: 1, backgroundColor: '#0f172a', justifyContent: 'center', alignItems: 'center', padding: 30 },
   
-  logoCircle: { width: 80, height: 80, borderRadius: 25, backgroundColor: '#38bdf8', justifyContent: 'center', alignItems: 'center', marginBottom: 20, shadowColor: '#38bdf8', shadowOpacity: 0.5, shadowRadius: 15, elevation: 10 },
-  logoText: { fontSize: 32, fontWeight: '900', color: '#fff' },
-  welcomeText: { fontSize: 28, fontWeight: '800', color: '#f8fafc', marginBottom: 8 },
-  subText: { fontSize: 16, color: '#94a3b8', textAlign: 'center', marginBottom: 50 },
-  loginBtn: { width: '100%', backgroundColor: '#1e293b', padding: 18, borderRadius: 16, borderWidth: 1, borderColor: '#334155' },
+  // Auth Styles
+  authContainer: { flex: 1, backgroundColor: '#0f172a', justifyContent: 'space-between', padding: 30, paddingVertical: 80 },
+  heroSection: { alignItems: 'center' },
+  logoCircle: { width: 90, height: 90, borderRadius: 30, backgroundColor: '#38bdf8', justifyContent: 'center', alignItems: 'center', marginBottom: 25, shadowColor: '#38bdf8', shadowOpacity: 0.4, shadowRadius: 20, elevation: 12 },
+  logoText: { fontSize: 36, fontWeight: '900', color: '#fff' },
+  welcomeText: { fontSize: 30, fontWeight: '800', color: '#f8fafc', marginBottom: 10 },
+  subText: { fontSize: 16, color: '#94a3b8', textAlign: 'center', lineHeight: 24 },
+  loginBtn: { width: '100%', backgroundColor: '#1e293b', padding: 20, borderRadius: 20, borderWidth: 1, borderColor: '#334155', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10 },
   btnInner: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
-  loginBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  loginBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' },
 
-  profileHeader: { alignItems: 'center', marginTop: 40, marginBottom: 30 },
-  avatarContainer: { position: 'relative', marginBottom: 20 },
-  avatar: { width: 110, height: 110, borderRadius: 55, borderWidth: 3, borderColor: '#38bdf8' },
-  onlineBadge: { position: 'absolute', bottom: 5, right: 5, width: 20, height: 20, borderRadius: 10, backgroundColor: '#22c55e', borderWidth: 3, borderColor: '#0f172a' },
-  name: { fontSize: 26, fontWeight: '800', color: '#f8fafc' },
-  email: { fontSize: 16, color: '#94a3b8', marginTop: 4 },
+  // Profile Styles (Horizontal Layout to match your profileview)
+  profileHeader: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginTop: 40, 
+    marginBottom: 35,
+    backgroundColor: '#1e293b',
+    padding: 20,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#334155'
+  },
+  avatarContainer: { position: 'relative', marginRight: 18 },
+  avatar: { width: 80, height: 80, borderRadius: 40, borderWidth: 3, borderColor: '#38bdf8' },
+  onlineBadge: { position: 'absolute', bottom: 2, right: 2, width: 18, height: 18, borderRadius: 9, backgroundColor: '#22c55e', borderWidth: 3, borderColor: '#1e293b' },
+  headerTextContainer: { flex: 1 },
+  name: { fontSize: 22, fontWeight: '800', color: '#f8fafc' },
+  email: { fontSize: 14, color: '#94a3b8', marginTop: 4 },
 
-  statsCard: { flexDirection: 'row', backgroundColor: '#1e293b', borderRadius: 20, padding: 25, marginBottom: 20, borderWidth: 1, borderColor: '#334155' },
-  statItem: { flex: 1, alignItems: 'center' },
-  statLabel: { color: '#64748b', fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 5 },
-  statValue: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  divider: { width: 1, height: '100%', backgroundColor: '#334155' },
-
-  logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 25 },
-  logoutText: { color: '#f87171', fontSize: 16, fontWeight: '700', marginLeft: 10 }
+  logoutBtn: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    marginTop: 20,
+    paddingVertical: 18,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(248, 113, 113, 0.2)'
+  },
+  logoutText: { color: '#f87171', fontSize: 15, fontWeight: '700', marginLeft: 10 }
 });

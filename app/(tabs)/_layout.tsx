@@ -4,6 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 import Header from '../components/Header';
 import { scrollYValue } from '../constants/Animation';
 
+
+const SKYLA_DARK = '#0F1C38';
+
 export default function Layout() {
   // Animation logic for hiding/showing the tab bar
   const tabBarOpacity = scrollYValue.interpolate({
@@ -28,9 +31,12 @@ export default function Layout() {
     tabBarInactiveTintColor: '#8E8E93',
     tabBarStyle: {
       // 1. Set the background of the WHOLE bar to your line color
-      backgroundColor: '#000000', 
-      position: 'absolute',
+      backgroundColor: SKYLA_DARK,
+
+      // 2. Add a top border to create the line effect
+      borderTopColor: '#0DDDF0', // Line color
       borderTopWidth: 0.5,
+      position: 'absolute',
       height: Platform.OS === 'ios' ? 90 : 85,
       
       // Animation properties

@@ -8,43 +8,121 @@ import {
   Text,
   TouchableOpacity,
   View,
-  Dimensions,
-  ActivityIndicator
+  Alert,
+  Dimensions
 } from 'react-native';
 import { scrollYValue } from '../constants/Animation';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 
 const logo = require('../../assets/images/logo.png');
-const { width } = Dimensions.get('window');
-
-const WORKER_URL = 'https://posts-api.unscriptedusa.workers.dev';
 
 const SKYLA_ORANGE = '#FE9A0F';
 const SKYLA_CYAN = '#0DDDF0';
 const SKYLA_NAVY_MID = '#1C3150';
 const SKYLA_DARK = '#0F1C38';
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const router = useRouter();
   const [posts, setPosts] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [user, setUser] = useState<any>(null);
-
+  const [gitStats, setGitStats] = useState<Record<string, any>>({});
   const scrollY = useRef(new Animated.Value(0)).current;
+  const [imageHeights, setImageHeights] = useState<Record<string, number>>({});
 
   const fetchPosts = async () => {
     setRefreshing(true);
     try {
-      const res = await fetch(WORKER_URL);
-      const data = await res.json();
-      setPosts(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.log("Fetch error:", err);
+      const { data, error } = await supabase
+        .from('posts')
+        .select(`
+          *,
+          author:profiles!posts_profiles_fkey (
+            name,
+            profilepic_url,
+            institution,
+            github_url,
+            email
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setPosts(data || []);
+
+      // Trigger live stat fetch for each repo
+      data?.forEach(post => {
+        if (post.github_url) fetchLiveGithubStats(post.id, post.github_url);
+      });
+    } catch (err: any) {
+      console.error("Fetch error:", err.message);
     } finally {
       setRefreshing(false);
     }
   };
+
+  const fetchLiveGithubStats = async (postId: string, githubUrl: string) => {
+    try {
+      const repoPath = githubUrl.replace('https://github.com/', '').split('/').slice(0, 2).join('/');
+      const res = await fetch(`https://api.github.com/repos/${repoPath}`);
+      const json = await res.json();
+      
+      setGitStats(prev => ({
+        ...prev,
+        [postId]: {
+          stars: json.stargazers_count || 0,
+          forks: json.forks_count || 0,
+          watchers: json.subscribers_count || 0
+        }
+      }));
+    } catch (e) {
+      console.log("Stats fetch error", e);
+    }
+  };
+
+  const handleGithubAction = async (post: any, action: 'star' | 'fork') => {
+    // Pull session just like your account/profile views do
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    // In Supabase OAuth, the github token is often in provider_token
+    const token = session?.provider_token; 
+
+    if (!token) {
+      Alert.alert("GitHub Login Required", "Please sign in with GitHub again to authorize Star/Fork actions.");
+      return;
+    }
+
+    const repoPath = post.github_url.replace('https://github.com/', '').split('/').slice(0, 2).join('/');
+    const url = action === 'star' 
+      ? `https://api.github.com/user/starred/${repoPath}` 
+      : `https://api.github.com/repos/${repoPath}/forks`;
+
+    try {
+      const res = await fetch(url, {
+        method: action === 'star' ? 'PUT' : 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/vnd.github.v3+json',
+        }
+      });
+
+      // status 204 = Star success | 201/202 = Fork success
+      if (res.status === 204 || res.status === 201 || res.status === 202) {
+        Alert.alert("Success!", `You ${action === 'star' ? 'starred' : 'forked'} ${post.title} on GitHub.`);
+        fetchLiveGithubStats(post.id, post.github_url); 
+      } else {
+        const errJson = await res.json();
+        Alert.alert("GitHub says:", errJson.message || "Action failed");
+      }
+    } catch (e) {
+      Alert.alert("Error", "Check your connection or GitHub permissions.");
+    }
+  };
+
+  useEffect(() => {
+    fetchPosts();
+  }, []);
 
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
@@ -54,19 +132,14 @@ export default function HomeScreen() {
     }
   );
 
-  useEffect(() => {
-    fetchPosts();
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+  const handleImageLoad = (postId: string, event: any) => {
+    const { width: imgWidth, height: imgHeight } = event.nativeEvent.source;
+    const calculatedHeight = (SCREEN_WIDTH - 20) * (imgHeight / imgWidth);
+    setImageHeights(prev => ({
+      ...prev,
+      [postId]: calculatedHeight
+    }));
+  };
 
   return (
     <View style={styles.container}>
@@ -75,47 +148,46 @@ export default function HomeScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={fetchPosts} tintColor={SKYLA_CYAN} />
         }
-        scrollEventThrottle={16}
         onScroll={handleScroll}
+        scrollEventThrottle={16}
       >
         {posts.length === 0 && !refreshing && (
           <Text style={styles.empty}>No projects yet. Be the first to share!</Text>
         )}
 
         {posts.map((post: any) => {
-          // Logic for display remains consistent as requested
-          const displayName = user?.user_metadata?.full_name || "Skyla User";
-          const displayAvatar = user?.user_metadata?.avatar_url || "";
-          const displayEmail = user?.email || "No email shared";
-          const githubUsername = user?.user_metadata?.preferred_username || "";
+          const profile = post.author;
+          const displayName = profile?.name || "Skyla User";
+          const displayAvatar = profile?.profilepic_url;
+          const githubUsername = profile?.github_url?.split('/').pop() || "";
+          
+          const stats = gitStats[post.id] || { stars: '...', forks: '...', watchers: '...' };
+          const hasImage = post.image_url && post.image_url.trim() !== '';
 
           return (
             <View key={post.id} style={styles.card}>
+              {/* Header */}
               <TouchableOpacity 
                 style={styles.header}
-                activeOpacity={0.7}
-                onPress={() => {
-                   router.push({
-                     pathname: '../homepages/profileview',
-                     params: { 
-                        name: displayName,
-                        avatar: displayAvatar,
-                        email: displayEmail,
-                        username: githubUsername
-                     }
-                   });
-                }}
+                onPress={() => router.push({
+                  pathname: '../homepages/profileview',
+                  params: { 
+                    postId: post.id,
+                    name: displayName, 
+                    avatar: displayAvatar, 
+                    username: githubUsername,
+                    email: profile?.email
+                  }
+                })}
               >
                 <Image 
                   source={displayAvatar ? { uri: displayAvatar } : logo} 
                   style={styles.avatar} 
                 />
-
                 <View style={styles.headerInfo}>
                   <Text style={styles.name}>{displayName}</Text>
-                  <Text style={styles.institution}>University Student</Text>
+                  <Text style={styles.institution}>{profile?.institution}</Text>
                 </View>
-
                 {post.language && (
                   <View style={styles.languageBadge}>
                     <Text style={styles.languageText}>{post.language}</Text>
@@ -123,70 +195,75 @@ export default function HomeScreen() {
                 )}
               </TouchableOpacity>
 
-              <Image 
-                source={{ uri: post.source || post.image }} 
-                style={styles.image} 
-                resizeMode="cover"
-              />
+              {/* Project Image - Enhanced display */}
+              {hasImage && (
+                <View style={styles.imageContainer}>
+                  <Image 
+                    source={{ uri: post.image_url }} 
+                    style={[
+                      styles.image,
+                      imageHeights[post.id] ? { height: imageHeights[post.id] } : undefined
+                    ]}
+                    resizeMode="contain"
+                    onLoad={(event) => handleImageLoad(post.id, event)}
+                  />
+                </View>
+              )}
 
-              <View style={styles.postInfo}>
-                <Text style={styles.repoName}>{post.title || post.name}</Text>
-                <Text style={styles.description} numberOfLines={3}>
-                  {post.description || "No description provided."}
-                </Text>
+              {/* Info */}
+              <View style={[styles.postInfo, !hasImage && styles.postInfoNoImage]}>
+                <Text style={styles.repoName}>{post.title}</Text>
+                <Text style={styles.description} numberOfLines={3}>{post.description}</Text>
               </View>
 
+              {/* Stats Row with Watchers */}
               <View style={styles.statsRow}>
                 <View style={styles.stat}>
-                   <Ionicons name="star" size={18} color={SKYLA_ORANGE} />
-                  <Text style={styles.statText}>{post.stars?.toLocaleString() || 0}</Text>
+                  <Ionicons name="star" size={18} color={SKYLA_ORANGE} />
+                  <Text style={styles.statText}>{stats.stars}</Text>
                 </View>
                 <View style={styles.stat}>
                   <Ionicons name="git-branch" size={18} color={SKYLA_CYAN} />
-                  <Text style={styles.statText}>{post.forks?.toLocaleString() || 0}</Text>
+                  <Text style={styles.statText}>{stats.forks}</Text>
                 </View>
                 <View style={styles.stat}>
-                  <Ionicons name="eye" size={18} color="#ddd" />
-                  <Text style={styles.statText}>{post.watchers?.toLocaleString() || 0}</Text>
+                  <Ionicons name="eye" size={18} color="#94a3b8" />
+                  <Text style={styles.statText}>{stats.watchers}</Text>
                 </View>
-                {post.lastCommit && (
-                  <Text style={styles.lastUpdated}>Updated {post.lastCommit}</Text>
-                )}
+                <Text style={styles.lastUpdated}>{new Date(post.created_at).toLocaleDateString()}</Text>
               </View>
 
+              {/* Actions Section */}
               <View style={styles.actions}>
-                <TouchableOpacity style={styles.actionButton}>
-                  <Ionicons name="star-outline" size={22} color={SKYLA_ORANGE} />
-                  <Text style={styles.actionText}>Star</Text>
-                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={() => router.push({ pathname: '../homepages/postview', params: { postId: post.id,
+                    name: displayName, 
+                    avatar: displayAvatar, 
+                    username: githubUsername,
+                    email: profile?.email
+            
+                   } })}
+                >
+                  <Ionicons name="chatbubble-ellipses-outline" size={20} color="#ddd" />
+                  <Text style={styles.actionText}  >Comment</Text>
+                </TouchableOpacity>   
 
-                <TouchableOpacity style={styles.actionButton}>
-                  <Ionicons name="git-branch-outline" size={22} color={SKYLA_CYAN} />
-                  <Text style={styles.actionText}>Fork</Text>
-                </TouchableOpacity>
-                   
-                <TouchableOpacity         onPress={() => {
-                   router.push({   pathname: '../homepages/profileview'  , params: { 
-                        name: displayName,
-                        avatar: displayAvatar,
-                        email: displayEmail,
-                        username: githubUsername
-                     } });
-                }} style={styles.actionButton}>
-                  <Ionicons name="chatbubble-ellipses-outline" size={22} color="#ddd" />
-                  <Text style={styles.actionText}>Comment</Text>
-                </TouchableOpacity>
+                {post.site_url && (
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={() => router.push({ pathname: '../homepages/siteview', params: { url: post.site_url } })}
+                  >
+                    <Ionicons name="globe-outline" size={20} color="#fff" />
+                    <Text style={styles.actionText}>Site</Text>
+                  </TouchableOpacity>
+                )}
 
                 <TouchableOpacity 
-                  style={[styles.actionButton]} 
-                  onPress={() => {
-                    const finalUrl = post.githubUrl || "https://github.com/Newton-oyweri/cshub";
-                    router.push({
-                      pathname: '../homepages/webview',
-                      params: { url: finalUrl }
-                    });
-                  }}>
-                  <Ionicons name="logo-github" size={22} color="#ddd" />
+                  style={styles.actionButton}
+                  onPress={() => router.push({ pathname: '../homepages/webview', params: { url: post.github_url } })}
+                >
+                  <Ionicons name="logo-github" size={20} color="#ddd" />
                   <Text style={styles.actionText}>Repo</Text>
                 </TouchableOpacity>
               </View>
@@ -194,23 +271,51 @@ export default function HomeScreen() {
           );
         })}
       </Animated.ScrollView>
+
+      {/* FAB */}
+      <TouchableOpacity 
+        style={styles.fab} 
+        onPress={() => router.push('./components/createpost')}
+      >
+        <Ionicons name="add" size={32} color="white" />
+      </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: SKYLA_DARK },
-  scrollContent: { paddingBottom: 100, paddingHorizontal: 10 },
-  card: { backgroundColor: SKYLA_NAVY_MID, borderRadius: 18, marginBottom: 16, overflow: 'hidden', elevation: 6 },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 14, backgroundColor: 'rgba(0,0,0,0.25)' },
+  scrollContent: { paddingBottom: 120, paddingHorizontal: 10, paddingTop: 10 },
+  card: { 
+    backgroundColor: SKYLA_NAVY_MID, 
+    borderRadius: 18, 
+    marginBottom: 16, 
+    overflow: 'hidden', 
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  header: { flexDirection: 'row', alignItems: 'center', padding: 14, backgroundColor: 'rgba(0,0,0,0.2)' },
   avatar: { width: 46, height: 46, borderRadius: 23, marginRight: 12, borderWidth: 2, borderColor: SKYLA_CYAN },
   headerInfo: { flex: 1 },
   name: { color: '#fff', fontSize: 16, fontWeight: '700' },
   institution: { color: '#aaa', fontSize: 13 },
   languageBadge: { backgroundColor: SKYLA_ORANGE + '25', paddingHorizontal: 11, paddingVertical: 5, borderRadius: 12 },
   languageText: { color: SKYLA_ORANGE, fontSize: 12, fontWeight: '700' },
-  image: { width: '100%', height: 230 },
+  imageContainer: {
+    backgroundColor: '#0a1525',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  image: { 
+    width: '100%', 
+    minHeight: 200,
+    backgroundColor: '#0a1525',
+  },
   postInfo: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 6 },
+  postInfoNoImage: { paddingTop: 16 },
   repoName: { color: '#fff', fontSize: 18, fontWeight: '700', marginBottom: 6 },
   description: { color: '#ddd', fontSize: 15, lineHeight: 22 },
   statsRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, gap: 18 },
@@ -220,5 +325,6 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)', padding: 10 },
   actionButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, gap: 6 },
   actionText: { color: '#ddd', fontWeight: '600' },
-  empty: { color: '#666', textAlign: 'center', marginTop: 120, fontSize: 16 },
+  empty: { color: '#666', textAlign: 'center', marginTop: 150 },
+  fab: { position: 'absolute', bottom: 30, right: 25, width: 64, height: 64, borderRadius: 32, backgroundColor: SKYLA_ORANGE, justifyContent: 'center', alignItems: 'center', elevation: 8 }
 });

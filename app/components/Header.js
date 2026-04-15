@@ -3,14 +3,21 @@ import { StyleSheet, Text, View, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import Constants from 'expo-constants';
 
+// Skyla Color Palette
+const SKYLA_CYAN = '#0DDDF0';
+const SKYLA_DARK = '#0F1C38';
+
 export default function Header() {
   return (
     <View style={styles.headerContainer}>
-      {/* Light status bar because the header background is black */}
+      {/* Light status bar for the dark background */}
       <StatusBar style="light" /> 
       
       <View style={styles.content}>
-        <Text style={styles.headerText}>cshub</Text>
+        <View style={styles.logoContainer}>
+          <Text style={styles.headerText}>cs</Text>
+          <Text style={[styles.headerText, { color: SKYLA_CYAN }]}>hub</Text>
+        </View>
       </View>
     </View>
   );
@@ -18,26 +25,30 @@ export default function Header() {
 
 const styles = StyleSheet.create({
   headerContainer: {
-    backgroundColor: '#000000',
-    // Ensures the container starts at the top but content respects the notch
+    backgroundColor: SKYLA_DARK, // Updated to match app theme
+    // Dynamic padding ensures content starts exactly below the status bar/notch
     paddingTop: Constants.statusBarHeight, 
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#333333', // Darker border to match black theme
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
   },
   content: {
-    height: 35, // This is the actual height of the header "bar"
+    height: 20, // Slightly taller for a more premium "app-like" feel
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  logoContainer: {
     flexDirection: 'row',
+    alignItems: 'center',
   },
   headerText: {
-    color: '#FFFFFF', // Changed to white for visibility on black
-    fontSize: 20,
-    fontWeight: 'bold',
-    // Slight adjustment for optical centering on some Android devices
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '900',
+    letterSpacing: -0.5,
+    textTransform: 'lowercase',
     ...Platform.select({
       android: {
-        fontFamily: 'sans-serif-medium',
+        fontFamily: 'sans-serif-condensed',
       },
     }),
   },
