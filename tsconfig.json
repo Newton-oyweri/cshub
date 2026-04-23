@@ -34,7 +34,7 @@
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
     "declarations.d.ts"
-, "app/constants/Animation.js"  ],
+, "constants/Animation.js", "app/components/Header.tsx"  ],
   "exclude": [
     "node_modules"
   ],

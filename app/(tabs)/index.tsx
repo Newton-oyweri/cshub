@@ -1,18 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useState, useRef } from 'react';
+import { useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import {
+  Alert,
+  Animated,
+  Dimensions,
   Image,
   RefreshControl,
-  Animated,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
-  Alert,
-  Dimensions
+  View
 } from 'react-native';
-import { scrollYValue } from '../constants/Animation';
-import { useRouter } from 'expo-router';
+import { scrollYValue } from '../../constants/Animation';
 import { supabase } from '../../lib/supabase';
 
 const logo = require('../../assets/images/logo.png');
@@ -44,7 +44,8 @@ export default function HomeScreen() {
             institution,
             github_url,
             email
-          )
+          ),
+          comments_count:comments(count)
         `)
         .order('created_at', { ascending: false });
 
@@ -52,7 +53,7 @@ export default function HomeScreen() {
       setPosts(data || []);
 
       // Trigger live stat fetch for each repo
-      data?.forEach(post => {
+      data?.forEach((post: any) => {
         if (post.github_url) fetchLiveGithubStats(post.id, post.github_url);
       });
     } catch (err: any) {
@@ -82,10 +83,7 @@ export default function HomeScreen() {
   };
 
   const handleGithubAction = async (post: any, action: 'star' | 'fork') => {
-    // Pull session just like your account/profile views do
     const { data: { session } } = await supabase.auth.getSession();
-    
-    // In Supabase OAuth, the github token is often in provider_token
     const token = session?.provider_token; 
 
     if (!token) {
@@ -107,7 +105,6 @@ export default function HomeScreen() {
         }
       });
 
-      // status 204 = Star success | 201/202 = Fork success
       if (res.status === 204 || res.status === 201 || res.status === 202) {
         Alert.alert("Success!", `You ${action === 'star' ? 'starred' : 'forked'} ${post.title} on GitHub.`);
         fetchLiveGithubStats(post.id, post.github_url); 
@@ -163,6 +160,7 @@ export default function HomeScreen() {
           
           const stats = gitStats[post.id] || { stars: '...', forks: '...', watchers: '...' };
           const hasImage = post.image_url && post.image_url.trim() !== '';
+          const commentCount = post.comments_count?.[0]?.count || 0;   // ← Added
 
           return (
             <View key={post.id} style={styles.card}>
@@ -237,16 +235,20 @@ export default function HomeScreen() {
               <View style={styles.actions}>
                 <TouchableOpacity
                   style={styles.actionButton}
-                  onPress={() => router.push({ pathname: '../homepages/postview', params: { postId: post.id,
-                    name: displayName, 
-                    avatar: displayAvatar, 
-                    username: githubUsername,
-                    email: profile?.email
-            
-                   } })}
+                  onPress={() => router.push({ 
+                    pathname: '../homepages/postview', 
+                    params: { 
+                      postId: post.id,
+                      name: displayName, 
+                      avatar: displayAvatar, 
+                      username: githubUsername,
+                      email: profile?.email
+                    } 
+                  })}
                 >
                   <Ionicons name="chatbubble-ellipses-outline" size={20} color="#ddd" />
-                  <Text style={styles.actionText}  >Comment</Text>
+                  <Text style={styles.statText}>{commentCount}</Text>
+                  <Text style={styles.actionText}>Comment</Text>
                 </TouchableOpacity>   
 
                 {post.site_url && (

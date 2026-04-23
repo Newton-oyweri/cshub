@@ -92,7 +92,7 @@ export default function UserComments({ postId }: UserCommentsProps) {
       {/* Section Header */}
       <View style={styles.sectionHeader}>
         <Ionicons name="chatbubble-ellipses-outline" size={20} color="#0DDDF0" />
-        <Text style={styles.sectionTitle}>Discussion ({comments.length})</Text>
+        <Text style={styles.sectionTitle}>{comments.length}</Text>
       </View>
 
       {/* Input Field */}

@@ -1,7 +1,7 @@
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useRef } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import {
   Animated,
   NativeScrollEvent,
@@ -9,403 +9,251 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
+  Image,
+  RefreshControl,
 } from 'react-native';
-import { scrollYValue } from '../constants/Animation';
+import { scrollYValue } from '../../constants/Animation';
+import { supabase } from '../../lib/supabase';
 
-const THREADS = [
-  {
-    id: 1,
-    title: 'React vs React Native',
-    author: 'Newton',
-    category: 'React',
-    time: '2H AGO',
-    discussions: 12,
-    content: 'Which one should you learn first?'
-  },
-  {
-    id: 2,
-    title: 'TypeScript vs JavaScript',
-    author: 'Skyla',
-    category: 'TypeScript',
-    time: '5H AGO',
-    discussions: 20,
-    content: 'Type safety vs flexibility'
-  },
-  {
-    id: 3,
-    title: 'Best way to learn Python',
-    author: 'Alex',
-    category: 'Python',
-    time: '1H AGO',
-    discussions: 8,
-    content: 'Beginner roadmap discussion'
-  },
-  {
-    id: 4,
-    title: 'Frontend vs Backend Development',
-    author: 'Grace',
-    category: 'Web Dev',
-    time: '3H AGO',
-    discussions: 15,
-    content: 'Which path pays more?'
-  },
-  {
-    id: 5,
-    title: 'AI replacing programmers?',
-    author: 'Newton',
-    category: 'AI',
-    time: '6H AGO',
-    discussions: 34,
-    content: 'Future of software engineering'
-  },
-  {
-    id: 6,
-    title: 'Node.js performance tips',
-    author: 'Brian',
-    category: 'Backend',
-    time: '4H AGO',
-    discussions: 10,
-    content: 'How to optimize APIs'
-  },
-  {
-    id: 7,
-    title: 'CSS Grid vs Flexbox',
-    author: 'Mary',
-    category: 'CSS',
-    time: '2H AGO',
-    discussions: 18,
-    content: 'Layout system comparison'
-  },
-  {
-    id: 8,
-    title: 'Firebase vs Supabase',
-    author: 'Skyla',
-    category: 'Backend',
-    time: '7H AGO',
-    discussions: 22,
-    content: 'Which backend is better?'
-  },
-  {
-    id: 9,
-    title: 'Best IDE for coding',
-    author: 'John',
-    category: 'Tools',
-    time: '1D AGO',
-    discussions: 11,
-    content: 'VS Code vs others'
-  },
-  {
-    id: 10,
-    title: 'How to build a trading app',
-    author: 'Newton',
-    category: 'Startup',
-    time: '3H AGO',
-    discussions: 27,
-    content: 'From idea to product'
-  },
-  {
-    id: 11,
-    title: 'Java vs Kotlin',
-    author: 'David',
-    category: 'Mobile',
-    time: '8H AGO',
-    discussions: 14,
-    content: 'Android development choice'
-  },
-  {
-    id: 12,
-    title: 'Git best practices',
-    author: 'Alice',
-    category: 'DevOps',
-    time: '5H AGO',
-    discussions: 9,
-    content: 'Clean commit history tips'
-  },
-  {
-    id: 13,
-    title: 'MongoDB vs PostgreSQL',
-    author: 'Brian',
-    category: 'Database',
-    time: '9H AGO',
-    discussions: 19,
-    content: 'SQL vs NoSQL debate'
-  },
-  {
-    id: 14,
-    title: 'Freelancing as a developer',
-    author: 'Grace',
-    category: 'Career',
-    time: '10H AGO',
-    discussions: 25,
-    content: 'Getting first clients'
-  },
-  {
-    id: 15,
-    title: 'Best programming habits',
-    author: 'Newton',
-    category: 'Python',
-    time: '2D AGO',
-    discussions: 30,
-    content: 'How to code efficiently'
-  }
-];
+// Updated type to handle the count object from Supabase
+type Post = {
+  id: string;
+  title: string;
+  description: string;
+  category: string[];
+  created_at: string;
+  profiles: {
+    name: string | null;
+    profilepic_url: string | null;
+  } | null;
+  forumdiscussions: { count: number }[]; // Raw count from join
+  display_count?: number; // Formatted number for UI
+};
 
 const categoryColors: Record<string, readonly [string, string]> = {
   React: ['#61DAFB', '#0B1F2A'],
-  ReactNative: ['#61DAFB', '#132B3A'],
+  'Next.js': ['#000000', '#333333'],
   TypeScript: ['#3178C6', '#0B1F2A'],
-  JavaScript: ['#F7DF1E', '#1F1F1F'],
-  Python: ['#3776AB', '#0B1F2A'],
-  Java: ['#ED8B00', '#1B1B1B'],
-  Kotlin: ['#7F52FF', '#1C1C2E'],
-  Swift: ['#FA7343', '#1A1A1A'],
-
-  Node: ['#3C873A', '#0B1F2A'],
-  Express: ['#FFFFFF', '#1F1F1F'],
-  NextJS: ['#FFFFFF', '#000000'],
-
-  HTML: ['#E34F26', '#1A1A1A'],
-  CSS: ['#1572B6', '#0B1F2A'],
-  Tailwind: ['#38BDF8', '#0B1F2A'],
-
-  MongoDB: ['#4DB33D', '#0B1F2A'],
-  PostgreSQL: ['#336791', '#0B1F2A'],
-  MySQL: ['#00758F', '#0B1F2A'],
-
-  Firebase: ['#FFCA28', '#1F1F1F'],
-  Supabase: ['#3ECF8E', '#0B1F2A'],
-
-  AI: ['#8E44AD', '#0B1F2A'],
-  MachineLearning: ['#9B59B6', '#0B1F2A'],
-
-  DevOps: ['#F1502F', '#1A1A1A'],
-  Docker: ['#2496ED', '#0B1F2A'],
-  Kubernetes: ['#326CE5', '#0B1F2A'],
-
-  Git: ['#F05032', '#1A1A1A'],
-  GitHub: ['#FFFFFF', '#0B1F2A'],
-
-  Backend: ['#2ECC71', '#0B1F2A'],
-  Frontend: ['#E67E22', '#0B1F2A'],
-
-  Database: ['#1ABC9C', '#0B1F2A'],
-  Cloud: ['#3498DB', '#0B1F2A'],
-
-  Security: ['#E74C3C', '#1A1A1A'],
-  Career: ['#9B59B6', '#0B1F2A'],
-  Startup: ['#F39C12', '#1A1A1A'],
-
-  Tools: ['#95A5A6', '#0B1F2A'],
-  Productivity: ['#16A085', '#0B1F2A'],
+  Python: ['#3776AB', '#1C3150'],
+  'React Native': ['#00D8FF', '#15202B'],
+  'General': ['#FFA500', '#2A1F0B'],
 };
 
 export default function ForumScreen() {
   const router = useRouter();
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handlePressIn = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 0.98,
-      useNativeDriver: true,
-    }).start();
+  // 1. Fetch real data with joined discussion counts
+  const fetchPosts = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('forumposts')
+        .select(`
+          *,
+          profiles (
+            name,
+            profilepic_url
+          ),
+          forumdiscussions(count)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Transform the data so 'discussions' is a direct number
+      const formattedData = (data || []).map((post: Post) => ({
+        ...post,
+        display_count: post.forumdiscussions?.[0]?.count || 0
+      }));
+
+      setPosts(formattedData);
+    } catch (err) {
+      console.error('Fetch error:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handlePressOut = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-    }).start();
-  };
+  useEffect(() => {
+    fetchPosts();
+  }, []);
 
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { y: scrollYValue } } }],
     {
-      useNativeDriver: true,
+      useNativeDriver: false,
       listener: (event: NativeSyntheticEvent<NativeScrollEvent>) => {
         scrollYValue.setValue(event.nativeEvent.contentOffset.y);
-      }
+      },
     }
   );
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, { toValue: 0.98, useNativeDriver: false }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: false }).start();
+  };
 
   return (
     <View style={styles.container}>
       <LinearGradient colors={['#0F0F1A', '#1A1A2E']} style={styles.gradient}>
-
-        {/* Floating Account Button */}
-        <TouchableOpacity
-          onPress={() => router.push('/forumpages/Account')}
-          style={styles.floatingAccount}>
-          <Ionicons name="person" size={24} color="#FFF" />
-        </TouchableOpacity>
-
         <Animated.ScrollView
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
           scrollEventThrottle={16}
           onScroll={handleScroll}
+          refreshControl={
+            <RefreshControl refreshing={loading} onRefresh={fetchPosts} tintColor="#FFA500" />
+          }
         >
+          {posts.length === 0 && !loading ? (
+            <View style={styles.emptyContainer}>
+               <MaterialCommunityIcons name="comment-question-outline" size={80} color="#333" />
+               <Text style={styles.emptyText}>No discussions found. Be the first to ask!</Text>
+            </View>
+          ) : (
+            posts.map((post) => {
+              const mainCategory = post.category?.[0] || 'General';
+              const displayName = post.profiles?.name || 'Anonymous';
+              const avatar = post.profiles?.profilepic_url;
 
-          {THREADS.map((thread) => (
-            <Animated.View
-              key={thread.id}
-              style={[
-                styles.cardWrapper,
-                { transform: [{ scale: scaleAnim }] }
-              ]}
-            >
-
-              <TouchableOpacity
-                activeOpacity={0.9}
-                onPressIn={handlePressIn}
-                onPressOut={handlePressOut}
-                onPress={() =>
-                  router.push({
-                    pathname: '/components/singleforumpage',
-                    params: {
-                      id: String(thread.id),
-                      title: thread.title,
-                      author: thread.author,
-                      content: thread.content,
-                      category: thread.category,
-                      time: thread.time,
-                      discussions: String(thread.discussions),
-                    }
-                  })
-                }
-              >
-
-                <LinearGradient
-                  colors={['#22222E', '#1A1A2E']}
-                  style={styles.card}
+              return (
+                <Animated.View
+                  key={post.id}
+                  style={[styles.cardWrapper, { transform: [{ scale: scaleAnim }] }]}
                 >
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    onPressIn={handlePressIn}
+                    onPressOut={handlePressOut}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/components/singleforumpage',
+                        params: {
+                          id: post.id,
+                          title: post.title,
+                          author: displayName,
+                          content: post.description,
+                          category: mainCategory,
+                          time: new Date(post.created_at).toLocaleDateString(),
+                          discussions: String(post.display_count || 0),
+                        },
+                      })
+                    }
+                  >
+                    <LinearGradient colors={['#22222E', '#1A1A2E']} style={styles.card}>
+                      <View style={styles.header}>
+                        <View style={styles.authorGroup}>
+                          {avatar ? (
+                            <Image source={{ uri: avatar }} style={styles.avatar} />
+                          ) : (
+                            <View style={styles.avatarFallback}>
+                              <MaterialCommunityIcons name="account" size={16} color="#0DDDF0" />
+                            </View>
+                          )}
+                          <Text style={styles.author}>{displayName}</Text>
+                        </View>
 
-                  {/* Header */}
-                  <View style={styles.header}>
-                    <Text style={styles.author}>{thread.author}</Text>
+                        <LinearGradient
+                          colors={categoryColors[mainCategory] || ['#FFA500', '#FF6B6B']}
+                          style={styles.badge}
+                        >
+                          <Text style={styles.badgeText}>{mainCategory}</Text>
+                        </LinearGradient>
+                      </View>
 
-                    <LinearGradient
-                      colors={categoryColors[thread.category] || ['#FFA500', '#FF6B6B']}
-                      style={styles.badge}
-                    >
-                      <Text style={styles.badgeText}>{thread.category}</Text>
+                      <Text style={styles.title} numberOfLines={2}>{post.title}</Text>
+                      <Text style={styles.contentText} numberOfLines={2}>{post.description}</Text>
+
+                      <View style={styles.footer}>
+                        <View style={styles.discussion}>
+                          <MaterialCommunityIcons name="chat-outline" size={14} color="#FFA500" />
+                          <Text style={styles.discussionText}>{post.display_count || 0}</Text>
+                        </View>
+                        <MaterialCommunityIcons name="chevron-right" size={20} color="#FFA500" />
+                      </View>
                     </LinearGradient>
-                  </View>
-
-                  {/* Title */}
-                  <Text style={styles.title} numberOfLines={2}>
-                    {thread.title}
-                  </Text>
-
-                  {/* Content */}
-                  <Text style={styles.contentText} numberOfLines={2}>
-                    {thread.content}
-                  </Text>
-
-                  {/* Footer */}
-                  <View style={styles.footer}>
-                    <View style={styles.discussion}>
-                      <MaterialCommunityIcons name="chat-outline" size={14} color="#FFA500" />
-                      <Text style={styles.discussionText}>
-                        {thread.discussions}
-                      </Text>
-                    </View>
-
-                    <MaterialCommunityIcons name="chevron-right" size={20} color="#FFA500" />
-                  </View>
-
-                </LinearGradient>
-              </TouchableOpacity>
-            </Animated.View>
-          ))}
-
+                  </TouchableOpacity>
+                </Animated.View>
+              );
+            })
+          )}
         </Animated.ScrollView>
       </LinearGradient>
+
+      {/* Floating Ask Button */}
+      <TouchableOpacity
+        style={styles.fab}
+        activeOpacity={0.8}
+        onPress={() => router.push('../forumpages/postforum')}
+      >
+        <LinearGradient colors={['#FFA500', '#FF6B00']} style={styles.fabButton}>
+          <MaterialCommunityIcons name="plus" size={24} color="#FFF" />
+          <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 12 }}>ASK</Text>
+        </LinearGradient>
+      </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-
   gradient: { flex: 1 },
-
-  floatingAccount: {
-    position: 'absolute',
-    top: 10,
-    right: 20,
-    zIndex: 10,
-    backgroundColor: '#0DDDF0',
-    width: 45,
-    height: 45,
-    borderRadius: 22,
-    justifyContent: 'center',
+  content: { paddingTop: 20, paddingHorizontal: 16, paddingBottom: 120 },
+  emptyContainer: { marginTop: 100, alignItems: 'center', opacity: 0.5 },
+  emptyText: { color: '#AAA', textAlign: 'center', marginTop: 20, fontSize: 16 },
+  cardWrapper: { marginBottom: 16 },
+  card: { 
+    borderRadius: 20, 
+    padding: 16, 
+    borderWidth: 1, 
+    borderColor: 'rgba(255,255,255,0.05)' 
+  },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  authorGroup: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  avatar: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#444' },
+  avatarFallback: { 
+    width: 26, 
+    height: 26, 
+    borderRadius: 13, 
+    backgroundColor: 'rgba(13, 221, 240, 0.1)', 
+    justifyContent: 'center', 
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(13, 221, 240, 0.3)'
   },
-
-  content: {
-    paddingTop: 80,
-    paddingHorizontal: 16,
-    paddingBottom: 100,
-  },
-
-  cardWrapper: {
-    marginBottom: 16,
-  },
-
-  card: {
-    borderRadius: 16,
-    padding: 16,
-  },
-
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-
-  author: {
-    color: '#FFF',
-    fontWeight: '600',
-  },
-
-  badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
-  },
-
-  badgeText: {
-    color: '#FFF',
-    fontSize: 10,
-  },
-
-  title: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 6,
-  },
-
-  contentText: {
-    color: '#AAA',
-    fontSize: 13,
-    marginBottom: 10,
-  },
-
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  author: { color: '#BBB', fontWeight: '600', fontSize: 13 },
+  badge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 },
+  badgeText: { color: '#FFF', fontSize: 10, fontWeight: '800', textTransform: 'uppercase' },
+  title: { color: '#FFF', fontSize: 18, fontWeight: '800', marginBottom: 8 },
+  contentText: { color: '#999', fontSize: 14, lineHeight: 20, marginBottom: 15 },
+  footer: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
     alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.05)',
+    paddingTop: 12
   },
-
-  discussion: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-
-  discussionText: {
-    color: '#FFA500',
-    marginLeft: 5,
+  discussion: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255, 165, 0, 0.1)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  discussionText: { color: '#FFA500', marginLeft: 5, fontSize: 12, fontWeight: '700' },
+  fab: { position: 'absolute', bottom: 30, right: 25, zIndex: 20 },
+  fabButton: { 
+    width: 64, 
+    height: 64, 
+    borderRadius: 32, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    elevation: 8, 
+    shadowColor: '#f3f5ff', 
+    shadowOpacity: 0.4, 
+    shadowRadius: 10, 
+    shadowOffset: { width: 0, height: 5 } 
   },
 });

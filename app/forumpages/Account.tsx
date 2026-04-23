@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
+import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import GithubRepos from './githubrepos';
@@ -30,7 +31,7 @@ export default function AccountPage() {
       setInitializing(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, currentSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, currentSession: Session | null) => {
       setSession(currentSession);
     });
 
@@ -124,7 +125,9 @@ export default function AccountPage() {
           <Text style={styles.logoText}>CS</Text>
         </View>
         <Text style={styles.welcomeText}>Welcome to cshub</Text>
-        <Text style={styles.subText}>Premium Student Resources & Dashboards</Text>
+        <Text style={styles.subText}>
+          Connect your GitHub account to explore repositories, manage your profile, and engage with the community.
+        </Text>
       </View>
 
       <TouchableOpacity 

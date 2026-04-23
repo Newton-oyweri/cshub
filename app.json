@@ -2,7 +2,7 @@
   "expo": {
     "name": "cshub",
     "slug": "cshub",
-    "version": "1.0.0",
+    "version": "0.035",
     "orientation": "portrait",
     "icon": "./assets/images/logo.png",
     "scheme": "cshub",
@@ -12,31 +12,56 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0F1C38",
         "foregroundImage": "./assets/images/logo.png"
       },
-      "package": "com.isackskyla.cshub"
+      "package": "com.isackskyla.cshub",
+      "versionCode": 1,
+      "softwareKeyboardLayoutMode": "pan",
+      "permissions": [
+        "WRITE_EXTERNAL_STORAGE",
+        "REQUEST_INSTALL_PACKAGES"
+      ]
     },
     "web": {
-      "output": "static",
-      "favicon": "./assets/images/logo.png"
+      "output": "server",
+      "favicon": "./assets/images/logo.png",
+      "bundler": "metro"
     },
     "plugins": [
       "expo-router",
+      "expo-intent-launcher",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notifications-icon.png",
+          "color": "#0F1C38"
+        }
+      ],
       [
         "expo-splash-screen",
         {
           "image": "./assets/images/logo.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#0F1C38"
         }
       ],
       "expo-font",
       "expo-image",
       "expo-web-browser",
       "react-native-video",
-      "expo-video"
+      "expo-video",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "useLegacyPackaging": true
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
