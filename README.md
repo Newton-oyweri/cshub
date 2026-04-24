@@ -1,10 +1,18 @@
 # Welcome to [cshub](https://computerscience.website/)
+A social platform for developers to share, connect and learn 
+ ## Preview 
 <p align="center">
   <img src="https://computerscience.website/assets/cshubreadme/readme1.jpg" width="30%" />
   <img src="https://computerscience.website/assets/cshubreadme/readme2.jpg" width="30%" />
   <img src="https://computerscience.website/assets/cshubreadme/readme3.jpg" width="30%" />
 </p>
 <hr>
+
+ ## Features
+ - Project posting and sharing from ones Github repos
+ - Forum page for discussions
+ 
+
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
