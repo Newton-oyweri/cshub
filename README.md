@@ -13,7 +13,7 @@ A social platform for developers to share, connect and learn
  - Forum page for discussions
  
 
-
+ ## Tech stack
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
 ## Get started
