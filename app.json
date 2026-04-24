@@ -2,7 +2,7 @@
   "expo": {
     "name": "cshub",
     "slug": "cshub",
-    "version": "0.035",
+    "version": "0.04",
     "orientation": "portrait",
     "icon": "./assets/images/logo.png",
     "scheme": "cshub",
