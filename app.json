@@ -30,7 +30,6 @@
     },
     "plugins": [
       "expo-router",
-      "expo-intent-launcher",
       [
         "expo-notifications",
         {
