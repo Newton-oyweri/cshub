@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, Platform, TouchableOpacity, Image } from 'react-native';
+import { StyleSheet, Text, View, Platform, TouchableOpacity, Image, TextInput } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import Constants from 'expo-constants';
 import { useEffect, useState } from 'react';
@@ -32,6 +32,10 @@ export default function Header() {
     router.push('/forumpages/Account');
   };
 
+  const handleSearchPress = () => {
+    router.push('/components/profilesearch');
+  };
+
   return (
     <View style={styles.headerContainer}>
       <StatusBar style="light" backgroundColor={SKYLA_DARK} />
@@ -40,6 +44,14 @@ export default function Header() {
       <Text style={styles.headerText}>
         cs<Text style={{ color: SKYLA_CYAN }}>hub</Text>
       </Text>
+
+      {/* Search Bar - expands to fill remaining space */}
+      <TouchableOpacity style={styles.searchContainer} onPress={handleSearchPress} activeOpacity={0.7}>
+        <View style={styles.searchBar}>
+          <Ionicons name="search-outline" size={20} color="#AAA" />
+          <Text style={styles.searchText}>Search profiles...</Text>
+        </View>
+      </TouchableOpacity>
 
       {/* Right Side - Profile / Account */}
       <View style={styles.rightSection}>
@@ -75,8 +87,8 @@ const styles = StyleSheet.create({
     height: 56 + Constants.statusBarHeight,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 16,
+    gap: 12,
   },
   headerText: {
     color: '#FFFFFF',
@@ -89,6 +101,23 @@ const styles = StyleSheet.create({
         fontFamily: 'sans-serif-condensed',
       },
     }),
+  },
+  searchContainer: {
+    flex: 1, // This makes it expand to fill remaining space
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1E2A4A',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 8,
+  },
+  searchText: {
+    color: '#AAA',
+    fontSize: 15,
+    flex: 1,
   },
   rightSection: {
     justifyContent: 'center',

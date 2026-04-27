@@ -17,6 +17,7 @@ import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import GithubRepos from './githubrepos';
+import UserActivity from '../components/useractivity';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -103,6 +104,7 @@ export default function AccountPage() {
 
           {/* Repository Horizontal List */}
           <GithubRepos session={session} />
+          <UserActivity userId={session.user.id} />
 
           {/* Logout Section */}
           <TouchableOpacity 
